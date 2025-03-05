@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from "react";
+import io from "socket.io-client";
+import axios from "axios";
 import {
   Box,
   Paper,
@@ -6,21 +8,17 @@ import {
   Typography,
   TextField,
   IconButton,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemAvatar,
-  Avatar,
-  Divider,
-  Badge,
   Select,
   MenuItem,
   FormControl,
+  Divider,
 } from "@mui/material";
 import { Send as SendIcon } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
 
-// Styled components
+const API_BASE_URL = "http://localhost:8000/api/v1";
+const socket = io("http://localhost:8000", { transports: ["websocket"] }); // Adjust based on backend
+
 const ChatContainer = styled(Paper)(({ theme }) => ({
   height: "calc(100vh - 100px)",
   margin: theme.spacing(1),
@@ -39,176 +37,100 @@ const InputArea = styled(Box)(({ theme }) => ({
   borderTop: `1px solid ${theme.palette.divider}`,
 }));
 
-const OnlineBadge = styled(Badge)(({ theme }) => ({
-  "& .MuiBadge-badge": {
-    backgroundColor: "#44b700",
-    color: "#44b700",
-    boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
-    "&::after": {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
-      borderRadius: "50%",
-      animation: "ripple 1.2s infinite ease-in-out",
-      border: "1px solid currentColor",
-      content: '""',
-    },
-  },
-  "@keyframes ripple": {
-    "0%": {
-      transform: "scale(.8)",
-      opacity: 1,
-    },
-    "100%": {
-      transform: "scale(2.4)",
-      opacity: 0,
-    },
-  },
-}));
-
 const TeamChatPage = () => {
-  const [currentTeam, setCurrentTeam] = useState(1);
-  const [teams] = useState([
-    { id: 1, name: "Team 1" },
-    { id: 2, name: "Team 2" },
-    { id: 3, name: "Team 3" },
-  ]);
-
+  const [currentTeam, setCurrentTeam] = useState("");
+  const [teams, setTeams] = useState([]);
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState({
-    1: [
-      {
-        id: 1,
-        text: "Hello 1st team!",
-        sender: "John Doe",
-        timestamp: "10:00 AM",
-      },
-      {
-        id: 2,
-        text: "Hi John! How's the project going?",
-        sender: "You",
-        timestamp: "10:01 AM",
-      },
-    ],
-    2: [
-      {
-        id: 1,
-        text: "Hello 2nd team!",
-        sender: "Jane Smith",
-        timestamp: "09:00 AM",
-      },
-    ],
-    3: [
-      {
-        id: 1,
-        text: "Hello 3rd team!",
-        sender: "Mike Johnson",
-        timestamp: "11:00 AM",
-      },
-    ],
-  });
-
-  const [onlineUsers] = useState({
-    1: [
-      { id: 1, name: "John Doe", avatar: "/path/to/avatar1.jpg", online: true },
-      {
-        id: 2,
-        name: "Jane Smith",
-        avatar: "/path/to/avatar2.jpg",
-        online: true,
-      },
-      {
-        id: 3,
-        name: "Mike Johnson",
-        avatar: "/path/to/avatar3.jpg",
-        online: false,
-      },
-    ],
-    2: [
-      {
-        id: 4,
-        name: "Sarah Wilson",
-        avatar: "/path/to/avatar4.jpg",
-        online: true,
-      },
-      {
-        id: 5,
-        name: "Tom Brown",
-        avatar: "/path/to/avatar5.jpg",
-        online: false,
-      },
-    ],
-    3: [
-      {
-        id: 6,
-        name: "Emily Davis",
-        avatar: "/path/to/avatar6.jpg",
-        online: true,
-      },
-      {
-        id: 7,
-        name: "Alex Turner",
-        avatar: "/path/to/avatar7.jpg",
-        online: true,
-      },
-    ],
-  });
-
+  const [messages, setMessages] = useState({});
   const messageEndRef = useRef(null);
 
-  // Auto-scroll to bottom when new messages arrive
-  const scrollToBottom = () => {
-    messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  useEffect(() => {
+    fetchTeams();
+    socket.on("newMessage", (newMessage) => {
+      setMessages((prev) => ({
+        ...prev,
+        [newMessage.teamId]: [...(prev[newMessage.teamId] || []), newMessage],
+      }));
+    });
+  });
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (currentTeam) {
+      fetchMessages(currentTeam);
+      socket.emit("joinRoom", currentTeam);
+    }
+  }, [currentTeam, messages]);
 
-  const handleTeamChange = (event) => {
-    setCurrentTeam(event.target.value);
+  const fetchTeams = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/teams`, {
+        headers: {
+          Authorization:
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1NGFlOGM0NTRjY2Y0NzY5N2Y1OSIsImlhdCI6MTc0MTE5NTQwOSwiZXhwIjoxNzQ4OTcxNDA5fQ.S-Kv-RlvxsVvFBT1fHnGWcBx51CX-ibW9TgE0pMgLi4",
+        },
+      });
+      setTeams(response.data?.data?.data || []);
+    } catch (error) {
+      console.error("Error fetching teams", error);
+    }
   };
 
-  // Handle sending new messages
-  const handleSendMessage = (e) => {
+  const fetchMessages = async (teamId) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/chats/${teamId}`, {
+        headers: {
+          Authorization:
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1NGFlOGM0NTRjY2Y0NzY5N2Y1OSIsImlhdCI6MTc0MTE5NTQwOSwiZXhwIjoxNzQ4OTcxNDA5fQ.S-Kv-RlvxsVvFBT1fHnGWcBx51CX-ibW9TgE0pMgLi4",
+        },
+      });
+      setMessages((prev) => ({ ...prev, [teamId]: response.data }));
+    } catch (error) {
+      console.error("Error fetching messages", error);
+    }
+  };
+
+  const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (message.trim()) {
-      const newMessage = {
-        id: Date.now(),
-        text: message,
-        sender: "You",
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      };
-      setMessages((prevMessages) => ({
-        ...prevMessages,
-        [currentTeam]: [...(prevMessages[currentTeam] || []), newMessage],
-      }));
+    if (!message.trim()) return;
+
+    const newMessage = {
+      content: message,
+      sender: "67c154ae8c454ccf47697f59", // Replace with actual sender ID
+      teamId: currentTeam,
+    };
+
+    try {
+      const response = await axios.post(`${API_BASE_URL}/chats`, newMessage, {
+        headers: {
+          Authorization:
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1NGFlOGM0NTRjY2Y0NzY5N2Y1OSIsImlhdCI6MTc0MTE5NTQwOSwiZXhwIjoxNzQ4OTcxNDA5fQ.S-Kv-RlvxsVvFBT1fHnGWcBx51CX-ibW9TgE0pMgLi4",
+        },
+      });
+      socket.emit("sendMessage", response.data);
       setMessage("");
+    } catch (error) {
+      console.error("Error sending message", error);
     }
   };
 
   return (
     <Grid container spacing={1}>
-      {/* Online Users Sidebar */}
       <Grid item xs={3}>
         <Paper
           sx={{ height: "calc(100vh - 100px)", margin: 1, overflow: "auto" }}
         >
-          {/* Team Selector */}
           <Box sx={{ p: 2 }}>
             <FormControl fullWidth size="small">
               <Select
                 value={currentTeam}
-                onChange={handleTeamChange}
-                sx={{ mb: 2 }}
+                onChange={(e) => setCurrentTeam(e.target.value)}
+                displayEmpty
               >
+                <MenuItem value="" disabled>
+                  Select a team
+                </MenuItem>
                 {teams.map((team) => (
-                  <MenuItem key={team.id} value={team.id}>
+                  <MenuItem key={team._id} value={team._id}>
                     {team.name}
                   </MenuItem>
                 ))}
@@ -216,51 +138,26 @@ const TeamChatPage = () => {
             </FormControl>
           </Box>
           <Divider />
-          <Typography variant="h6" sx={{ p: 2 }}>
-            Online Users
-          </Typography>
-          <Divider />
-          <List>
-            {onlineUsers[currentTeam]?.map((user) => (
-              <ListItem key={user.id}>
-                <ListItemAvatar>
-                  <OnlineBadge
-                    overlap="circular"
-                    anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-                    variant="dot"
-                    invisible={!user.online}
-                  >
-                    <Avatar alt={user.name} src={user.avatar} />
-                  </OnlineBadge>
-                </ListItemAvatar>
-                <ListItemText
-                  primary={user.name}
-                  secondary={user.online ? "Online" : "Offline"}
-                />
-              </ListItem>
-            ))}
-          </List>
         </Paper>
       </Grid>
 
-      {/* Chat Area */}
       <Grid item xs={9}>
         <ChatContainer>
-          {/* Team Name Header */}
           <Box sx={{ p: 2, borderBottom: 1, borderColor: "divider" }}>
             <Typography variant="h6">
-              {teams.find((team) => team.id === currentTeam)?.name}
+              {teams.find((team) => team._id === currentTeam)?.name ||
+                "Loading..."}
             </Typography>
           </Box>
 
           <MessageArea>
-            {messages[currentTeam]?.map((msg) => (
+            {messages[currentTeam]?.map((msg, index) => (
               <Box
-                key={msg.id}
+                key={index}
                 sx={{
                   display: "flex",
                   justifyContent:
-                    msg.sender === "You" ? "flex-end" : "flex-start",
+                    msg.sender.name === "You" ? "flex-end" : "flex-start",
                   mb: 2,
                 }}
               >
@@ -268,21 +165,15 @@ const TeamChatPage = () => {
                   sx={{
                     p: 2,
                     backgroundColor:
-                      msg.sender === "You" ? "#1976d2" : "#f5f5f5",
-                    color: msg.sender === "You" ? "#ffffff" : "#000000",
+                      msg.sender.name === "You" ? "#1976d2" : "#f5f5f5",
+                    color: msg.sender.name === "You" ? "#ffffff" : "#000000",
                     maxWidth: "70%",
                     borderRadius: 2,
                   }}
                 >
-                  <Typography variant="body1">{msg.text}</Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      opacity: 0.8,
-                      color: msg.sender === "You" ? "#ffffff" : "#666666",
-                    }}
-                  >
-                    {msg.sender} • {msg.timestamp}
+                  <Typography variant="body1">{msg.content}</Typography>
+                  <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                    {msg.sender.name}
                   </Typography>
                 </Paper>
               </Box>
@@ -300,27 +191,11 @@ const TeamChatPage = () => {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   size="small"
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: 2,
-                    },
-                  }}
                 />
                 <IconButton
                   type="submit"
                   color="primary"
                   disabled={!message.trim()}
-                  sx={{
-                    backgroundColor: message.trim()
-                      ? "primary.main"
-                      : "grey.200",
-                    color: message.trim() ? "white" : "grey.500",
-                    "&:hover": {
-                      backgroundColor: message.trim()
-                        ? "primary.dark"
-                        : "grey.300",
-                    },
-                  }}
                 >
                   <SendIcon />
                 </IconButton>

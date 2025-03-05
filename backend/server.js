@@ -1,5 +1,8 @@
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
+const http = require("http");
+const SocketIO = require("socket.io");
+const chatSocket = require("./socket/socket");
 
 process.on("uncaughtException", (err) => {
   console.log("Unhandled exception! 💥 shutting down....");
@@ -9,6 +12,11 @@ process.on("uncaughtException", (err) => {
 
 dotenv.config({ path: "./config.env" });
 const app = require("./app");
+const server = http.createServer(app);
+const io = SocketIO(server, {
+  cors: { origin: "*" },
+  transports: ["websocket"], // Force WebSockets, disable polling
+});
 
 const DB = process.env.DATABASE.replace(
   "<PASSWORD>",
@@ -24,8 +32,10 @@ mongoose.connect(DB).then((con) => {
   console.log("DB connection succesful!");
 });
 
+chatSocket(io);
+
 const port = process.env.PORT || 3000;
-const server = app.listen(port, () => {
+server.listen(port, () => {
   console.log("App running on port 3000....");
 });
 

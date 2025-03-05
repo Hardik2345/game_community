@@ -38,7 +38,7 @@ exports.resizeEventImages = catchAsync(async (req, res, next) => {
 });
 
 exports.getAllEvents = factory.getAll(Event);
-exports.getEvent = factory.getOne(Event, { path: "reviews" });
+exports.getEvent = factory.getOne(Event);
 exports.createEvent = factory.createOne(Event);
 exports.updateEvent = factory.updateOne(Event);
 exports.deleteEvent = factory.deleteOne(Event);
