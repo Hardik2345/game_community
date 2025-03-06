@@ -4,10 +4,7 @@ const Message = require("./../models/messageModel");
 exports.getTeamMessages = async (req, res) => {
   try {
     const { teamId } = req.params;
-    const messages = await Message.find({ teamId }).populate(
-      "sender",
-      "username"
-    );
+    const messages = await Message.find({ teamId }).populate("sender", "name");
     res.json(messages);
   } catch (error) {
     res.status(500).json({ message: "Error fetching messages", error });

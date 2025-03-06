@@ -41,25 +41,40 @@ const TeamChatPage = () => {
   const [currentTeam, setCurrentTeam] = useState("");
   const [teams, setTeams] = useState([]);
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState({});
+  const [messages, setMessages] = useState([]);
   const messageEndRef = useRef(null);
 
   useEffect(() => {
-    fetchTeams();
-    socket.on("newMessage", (newMessage) => {
-      setMessages((prev) => ({
+    const handleNewMessage = (newMessage) => {
+      if (!newMessage.sender || !newMessage.sender.name) {
+        console.error("Received message without sender info:", newMessage);
+      }
+      setMessages((prev) => [
         ...prev,
-        [newMessage.teamId]: [...(prev[newMessage.teamId] || []), newMessage],
-      }));
-    });
-  });
+        {
+          ...newMessage,
+          sender: newMessage.sender || {
+            id: "67c154ae8c454ccf47697f59",
+            name: "Hardik",
+          }, // Ensure sender data exists
+        },
+      ]);
+    };
+
+    fetchTeams();
+    socket.on("receiveMessage", handleNewMessage);
+
+    return () => {
+      socket.off("receiveMessage", handleNewMessage); // ✅ Cleanup to prevent duplicates
+    };
+  }, []);
 
   useEffect(() => {
     if (currentTeam) {
       fetchMessages(currentTeam);
-      socket.emit("joinRoom", currentTeam);
+      socket.emit("joinTeamChat", currentTeam);
     }
-  }, [currentTeam, messages]);
+  }, [currentTeam]);
 
   const fetchTeams = async () => {
     try {
@@ -83,7 +98,9 @@ const TeamChatPage = () => {
             "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1NGFlOGM0NTRjY2Y0NzY5N2Y1OSIsImlhdCI6MTc0MTE5NTQwOSwiZXhwIjoxNzQ4OTcxNDA5fQ.S-Kv-RlvxsVvFBT1fHnGWcBx51CX-ibW9TgE0pMgLi4",
         },
       });
-      setMessages((prev) => ({ ...prev, [teamId]: response.data }));
+      setMessages((prev) =>
+        Array.isArray(response.data) ? response.data : [...prev]
+      );
     } catch (error) {
       console.error("Error fetching messages", error);
     }
@@ -93,20 +110,28 @@ const TeamChatPage = () => {
     e.preventDefault();
     if (!message.trim()) return;
 
-    const newMessage = {
-      content: message,
-      sender: "67c154ae8c454ccf47697f59", // Replace with actual sender ID
-      teamId: currentTeam,
-    };
+    // const newMessage = {
+    //   content: message,
+    //   sender: "67c154ae8c454ccf47697f59", // Replace with actual sender ID
+    //   teamId: currentTeam,
+    // };
+
+    // setMessages((prevMessages) => [...prevMessages, newMessage]);
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/chats`, newMessage, {
-        headers: {
-          Authorization:
-            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1NGFlOGM0NTRjY2Y0NzY5N2Y1OSIsImlhdCI6MTc0MTE5NTQwOSwiZXhwIjoxNzQ4OTcxNDA5fQ.S-Kv-RlvxsVvFBT1fHnGWcBx51CX-ibW9TgE0pMgLi4",
-        },
+      // await axios.post(`${API_BASE_URL}/chats`, newMessage, {
+      //   headers: {
+      //     Authorization:
+      //       "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1NGFlOGM0NTRjY2Y0NzY5N2Y1OSIsImlhdCI6MTc0MTE5NTQwOSwiZXhwIjoxNzQ4OTcxNDA5fQ.S-Kv-RlvxsVvFBT1fHnGWcBx51CX-ibW9TgE0pMgLi4",
+      //   },
+      // });
+      // socket.emit("sendMessage", response.data);
+      const user = { id: "67c154ae8c454ccf47697f59", name: "Hardik" };
+      socket.emit("sendMessage", {
+        teamId: currentTeam,
+        sender: user.id,
+        message,
       });
-      socket.emit("sendMessage", response.data);
       setMessage("");
     } catch (error) {
       console.error("Error sending message", error);
@@ -151,7 +176,7 @@ const TeamChatPage = () => {
           </Box>
 
           <MessageArea>
-            {messages[currentTeam]?.map((msg, index) => (
+            {messages.map((msg, index) => (
               <Box
                 key={index}
                 sx={{
