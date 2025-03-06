@@ -15,6 +15,9 @@ import {
 } from "@mui/material";
 import { Send as SendIcon } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
+import CryptoJS from "crypto-js";
+
+const SECRET_KEY = "your-32-character-secret-key-is-surely-here";
 
 const API_BASE_URL = "http://localhost:8000/api/v1";
 const socket = io("http://localhost:8000", { transports: ["websocket"] }); // Adjust based on backend
@@ -49,10 +52,12 @@ const TeamChatPage = () => {
       if (!newMessage.sender || !newMessage.sender.name) {
         console.error("Received message without sender info:", newMessage);
       }
+      const decryptedContent = decryptMessage(newMessage.content);
       setMessages((prev) => [
         ...prev,
         {
           ...newMessage,
+          content: decryptedContent, // Store decrypted content
           sender: newMessage.sender || {
             id: "67c154ae8c454ccf47697f59",
             name: "Hardik",
@@ -75,6 +80,15 @@ const TeamChatPage = () => {
       socket.emit("joinTeamChat", currentTeam);
     }
   }, [currentTeam]);
+
+  const encryptMessage = (message) => {
+    return CryptoJS.AES.encrypt(message, SECRET_KEY).toString();
+  };
+
+  const decryptMessage = (message) => {
+    const bytes = CryptoJS.AES.decrypt(message, SECRET_KEY);
+    return bytes.toString(CryptoJS.enc.Utf8);
+  };
 
   const fetchTeams = async () => {
     try {
@@ -127,10 +141,12 @@ const TeamChatPage = () => {
       // });
       // socket.emit("sendMessage", response.data);
       const user = { id: "67c154ae8c454ccf47697f59", name: "Hardik" };
+
+      const encryptedMessage = encryptMessage(message);
       socket.emit("sendMessage", {
         teamId: currentTeam,
         sender: user.id,
-        message,
+        message: encryptedMessage,
       });
       setMessage("");
     } catch (error) {
