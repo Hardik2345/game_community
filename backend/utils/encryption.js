@@ -1,7 +1,10 @@
+const dotenv = require("dotenv");
 const crypto = require("crypto");
 
+dotenv.config({ path: "./config.env" });
+
 const algorithm = "aes-256-cbc";
-const secretKey = crypto.randomBytes(32); // Replace with a fixed key for consistency
+const secretKey = Buffer.from(process.env.SECRET_KEY, "hex"); // Replace with a fixed key for consistency
 const iv = crypto.randomBytes(16); // IV must be random
 
 // Encrypt Function
