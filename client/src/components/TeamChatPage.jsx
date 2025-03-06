@@ -81,7 +81,7 @@ const TeamChatPage = () => {
       const response = await axios.get(`${API_BASE_URL}/teams`, {
         headers: {
           Authorization:
-            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1NGFlOGM0NTRjY2Y0NzY5N2Y1OSIsImlhdCI6MTc0MTE5NTQwOSwiZXhwIjoxNzQ4OTcxNDA5fQ.S-Kv-RlvxsVvFBT1fHnGWcBx51CX-ibW9TgE0pMgLi4",
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1NGFlOGM0NTRjY2Y0NzY5N2Y1OSIsImlhdCI6MTc0MTI1NDU5OSwiZXhwIjoxNzQ5MDMwNTk5fQ.O_CT09ix6ebwigkhO5-9t8lMDl8y6iJP3lDKc8sndFo",
         },
       });
       setTeams(response.data?.data?.data || []);
@@ -95,7 +95,7 @@ const TeamChatPage = () => {
       const response = await axios.get(`${API_BASE_URL}/chats/${teamId}`, {
         headers: {
           Authorization:
-            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1NGFlOGM0NTRjY2Y0NzY5N2Y1OSIsImlhdCI6MTc0MTE5NTQwOSwiZXhwIjoxNzQ4OTcxNDA5fQ.S-Kv-RlvxsVvFBT1fHnGWcBx51CX-ibW9TgE0pMgLi4",
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1NGFlOGM0NTRjY2Y0NzY5N2Y1OSIsImlhdCI6MTc0MTI1NDU5OSwiZXhwIjoxNzQ5MDMwNTk5fQ.O_CT09ix6ebwigkhO5-9t8lMDl8y6iJP3lDKc8sndFo",
         },
       });
       setMessages((prev) =>
@@ -122,7 +122,7 @@ const TeamChatPage = () => {
       // await axios.post(`${API_BASE_URL}/chats`, newMessage, {
       //   headers: {
       //     Authorization:
-      //       "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1NGFlOGM0NTRjY2Y0NzY5N2Y1OSIsImlhdCI6MTc0MTE5NTQwOSwiZXhwIjoxNzQ4OTcxNDA5fQ.S-Kv-RlvxsVvFBT1fHnGWcBx51CX-ibW9TgE0pMgLi4",
+      //       "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1NGFlOGM0NTRjY2Y0NzY5N2Y1OSIsImlhdCI6MTc0MTI1NDU5OSwiZXhwIjoxNzQ5MDMwNTk5fQ.O_CT09ix6ebwigkhO5-9t8lMDl8y6iJP3lDKc8sndFo",
       //   },
       // });
       // socket.emit("sendMessage", response.data);
@@ -182,7 +182,7 @@ const TeamChatPage = () => {
                 sx={{
                   display: "flex",
                   justifyContent:
-                    msg.sender.name === "You" ? "flex-end" : "flex-start",
+                    msg.sender.name === "Hardik" ? "flex-end" : "flex-start",
                   mb: 2,
                 }}
               >
@@ -190,15 +190,22 @@ const TeamChatPage = () => {
                   sx={{
                     p: 2,
                     backgroundColor:
-                      msg.sender.name === "You" ? "#1976d2" : "#f5f5f5",
-                    color: msg.sender.name === "You" ? "#ffffff" : "#000000",
+                      msg.sender.name === "Hardik" ? "#1976d2" : "#f5f5f5",
+                    color: msg.sender.name === "Hardik" ? "#ffffff" : "#000000",
                     maxWidth: "70%",
                     borderRadius: 2,
                   }}
                 >
                   <Typography variant="body1">{msg.content}</Typography>
                   <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                    {msg.sender.name}
+                    {msg.sender.name},{" "}
+                    {new Date(msg.timestamp).toLocaleString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true,
+                    })}
                   </Typography>
                 </Paper>
               </Box>
