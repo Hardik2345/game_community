@@ -14,11 +14,13 @@ module.exports = function chatSocket(io) {
 
       try {
         // Save message to database
-        const newMessage = await Message.create({
+        let newMessage = await Message.create({
           teamId,
           sender,
           content: message,
         });
+
+        newMessage = await newMessage.populate("sender", "name email avatar");
 
         // Emit message to all users in the room
         io.to(teamId).emit("receiveMessage", newMessage);
