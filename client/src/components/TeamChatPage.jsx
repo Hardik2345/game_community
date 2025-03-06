@@ -66,7 +66,7 @@ const TeamChatPage = () => {
       const response = await axios.get(`${API_BASE_URL}/teams`, {
         headers: {
           Authorization:
-            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1NGFlOGM0NTRjY2Y0NzY5N2Y1OSIsImlhdCI6MTc0MTE5NTQwOSwiZXhwIjoxNzQ4OTcxNDA5fQ.S-Kv-RlvxsVvFBT1fHnGWcBx51CX-ibW9TgE0pMgLi4",
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1NGFlOGM0NTRjY2Y0NzY5N2Y1OSIsImlhdCI6MTc0MTIzNzI0MCwiZXhwIjoxNzQ5MDEzMjQwfQ.wvk5EFCA-JRgKCzludzqN9rDYfkF1SfO0XJ7bmWKdgA",
         },
       });
       setTeams(response.data?.data?.data || []);
@@ -80,7 +80,7 @@ const TeamChatPage = () => {
       const response = await axios.get(`${API_BASE_URL}/chats/${teamId}`, {
         headers: {
           Authorization:
-            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1NGFlOGM0NTRjY2Y0NzY5N2Y1OSIsImlhdCI6MTc0MTE5NTQwOSwiZXhwIjoxNzQ4OTcxNDA5fQ.S-Kv-RlvxsVvFBT1fHnGWcBx51CX-ibW9TgE0pMgLi4",
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1NGFlOGM0NTRjY2Y0NzY5N2Y1OSIsImlhdCI6MTc0MTIzNzI0MCwiZXhwIjoxNzQ5MDEzMjQwfQ.wvk5EFCA-JRgKCzludzqN9rDYfkF1SfO0XJ7bmWKdgA",
         },
       });
       setMessages((prev) => ({ ...prev, [teamId]: response.data }));
@@ -103,7 +103,7 @@ const TeamChatPage = () => {
       const response = await axios.post(`${API_BASE_URL}/chats`, newMessage, {
         headers: {
           Authorization:
-            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1NGFlOGM0NTRjY2Y0NzY5N2Y1OSIsImlhdCI6MTc0MTE5NTQwOSwiZXhwIjoxNzQ4OTcxNDA5fQ.S-Kv-RlvxsVvFBT1fHnGWcBx51CX-ibW9TgE0pMgLi4",
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1NGFlOGM0NTRjY2Y0NzY5N2Y1OSIsImlhdCI6MTc0MTIzNzI0MCwiZXhwIjoxNzQ5MDEzMjQwfQ.wvk5EFCA-JRgKCzludzqN9rDYfkF1SfO0XJ7bmWKdgA",
         },
       });
       socket.emit("sendMessage", response.data);
