@@ -2,7 +2,7 @@ const crypto = require("crypto");
 
 const SECRET_KEY = crypto
   .createHash("sha256") // ✅ Ensure 32-byte key
-  .update("your-secret-key") // Change this to your secure key
+  .update("your-secret-key-is") // Change this to your secure key
   .digest("base64")
   .substring(0, 32); // Ensure 32 bytes
 
@@ -30,21 +30,21 @@ exports.encryptMessage = (text) => {
 // AES Decryption Helper Function
 exports.decryptMessage = (encryptedText) => {
   try {
-    const textParts = encryptedText.split(":");
-    const iv = Buffer.from(textParts.shift(), "hex");
-    const encryptedData = textParts.join(":");
+    const parts = Buffer.from(encryptedText, "base64");
+    const iv = parts.slice(0, IV_LENGTH);
+    const encryptedData = parts.slice(IV_LENGTH);
 
     const decipher = crypto.createDecipheriv(
       "aes-256-cbc",
-      Buffer.from(SECRET_KEY),
+      Buffer.from(SECRET_KEY, "utf8"),
       iv
     );
-    let decrypted = decipher.update(encryptedData, "hex", "utf8");
-    decrypted += decipher.final("utf8");
+    let decrypted = decipher.update(encryptedData);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
 
-    return decrypted;
+    return decrypted.toString("utf8"); // Return decrypted text
   } catch (error) {
-    console.error("Decryption error:", error);
-    return null;
+    console.error("❌ Decryption failed:", error);
+    return encryptedText; // Return original if decryption fails
   }
 };
