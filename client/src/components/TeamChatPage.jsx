@@ -110,14 +110,15 @@ const TeamChatPage = () => {
     e.preventDefault();
     if (!message.trim()) return;
 
-    const newMessage = {
-      content: message,
-      sender: "67c154ae8c454ccf47697f59", // Replace with actual sender ID
-      teamId: currentTeam,
-    };
+    // const newMessage = {
+    //   content: message,
+    //   sender: "67c154ae8c454ccf47697f59", // Replace with actual sender ID
+    //   teamId: currentTeam,
+    // };
+
+    // setMessages((prevMessages) => [...prevMessages, newMessage]);
 
     try {
-
       // await axios.post(`${API_BASE_URL}/chats`, newMessage, {
       //   headers: {
       //     Authorization:
@@ -131,7 +132,6 @@ const TeamChatPage = () => {
         sender: user.id,
         message,
       });
-      socket.emit("sendMessage", response.data);
       setMessage("");
     } catch (error) {
       console.error("Error sending message", error);
