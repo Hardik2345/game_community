@@ -12,9 +12,14 @@ import {
   MenuItem,
   FormControl,
   Divider,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
 } from "@mui/material";
 import { Send as SendIcon } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
+import FiberManualRecord from "@mui/icons-material/FiberManualRecord";
 
 const API_BASE_URL = "http://localhost:8000/api/v1";
 const socket = io("http://localhost:8000", { transports: ["websocket"] }); // Adjust based on backend
@@ -42,6 +47,7 @@ const TeamChatPage = () => {
   const [teams, setTeams] = useState([]);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
+  const [onlineUsers, setOnlineUsers] = useState([]);
   const messageEndRef = useRef(null);
 
   useEffect(() => {
@@ -61,18 +67,28 @@ const TeamChatPage = () => {
       ]);
     };
 
+    const handleOnlineUsers = (users) => {
+      setOnlineUsers(users);
+    };
+
     fetchTeams();
     socket.on("receiveMessage", handleNewMessage);
+    socket.on("updateOnlineUsers", handleOnlineUsers);
+    console.log(onlineUsers);
 
     return () => {
       socket.off("receiveMessage", handleNewMessage); // ✅ Cleanup to prevent duplicates
+      socket.off("updateOnlineUsers", handleOnlineUsers);
     };
-  }, []);
+  }, [onlineUsers]);
 
   useEffect(() => {
     if (currentTeam) {
       fetchMessages(currentTeam);
-      socket.emit("joinTeamChat", currentTeam);
+      socket.emit("joinTeamChat", {
+        teamId: currentTeam,
+        userId: "67c154ae8c454ccf47697f59",
+      });
     }
   }, [currentTeam]);
 
@@ -163,6 +179,19 @@ const TeamChatPage = () => {
             </FormControl>
           </Box>
           <Divider />
+          <Box sx={{ p: 2 }}>
+            <Typography variant="subtitle1">Online Users</Typography>
+            <List>
+              {onlineUsers.map((user, index) => (
+                <ListItem key={index}>
+                  <ListItemIcon sx={{ minWidth: "unset", mr: 1 }}>
+                    <FiberManualRecord sx={{ color: "green", fontSize: 12 }} />
+                  </ListItemIcon>
+                  <ListItemText primary={user.name} sx={{ ml: 0 }} />
+                </ListItem>
+              ))}
+            </List>
+          </Box>
         </Paper>
       </Grid>
 

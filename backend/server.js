@@ -11,7 +11,6 @@ process.on("uncaughtException", (err) => {
 });
 
 dotenv.config({ path: "./config.env" });
-console.log("SECRET_KEY:", process.env.SECRET_KEY);
 const app = require("./app");
 const server = http.createServer(app);
 const io = SocketIO(server, {
