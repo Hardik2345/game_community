@@ -4,6 +4,7 @@ const messageSchema = new mongoose.Schema({
   teamId: { type: mongoose.Schema.Types.ObjectId, ref: "Team", required: true },
   sender: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   content: { type: String, required: true },
+  iv: { type: String, required: true },
   timestamp: { type: Date, default: Date.now },
 });
 

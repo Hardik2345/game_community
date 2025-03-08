@@ -23,9 +23,15 @@ app.enable("trust proxy", 1);
 app.set("view engine", "pug");
 app.set("views", path.join(__dirname, "views"));
 
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
 
-app.options("*", cors());
+// Handle preflight requests for all routes
+app.options("*", cors({ credentials: true, origin: "http://localhost:5173" }));
 
 app.use(express.static(path.join(__dirname, "public")));
 

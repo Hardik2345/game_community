@@ -12,9 +12,14 @@ import {
   MenuItem,
   FormControl,
   Divider,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
 } from "@mui/material";
 import { Send as SendIcon } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
+import FiberManualRecord from "@mui/icons-material/FiberManualRecord";
 
 const API_BASE_URL = "http://localhost:8000/api/v1";
 const socket = io("http://localhost:8000", { transports: ["websocket"] }); // Adjust based on backend
@@ -42,6 +47,8 @@ const TeamChatPage = () => {
   const [teams, setTeams] = useState([]);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
+  const [onlineUsers, setOnlineUsers] = useState([]);
+  const [currentUser, setCurrentUser] = useState("");
   const messageEndRef = useRef(null);
 
   useEffect(() => {
@@ -61,27 +68,62 @@ const TeamChatPage = () => {
       ]);
     };
 
+    const handleOnlineUsers = (users) => {
+      setOnlineUsers(users);
+    };
+
+    const fetchUser = async () => {
+      const response = await axios.get(`${API_BASE_URL}/users/me`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      const userData = response?.data?.data?.data;
+      const newUser = {
+        id: userData._id,
+        name: userData.name,
+      };
+
+      // ✅ Prevent unnecessary re-renders by updating state only if the user has changed
+      setCurrentUser((prevUser) =>
+        JSON.stringify(prevUser) !== JSON.stringify(newUser)
+          ? newUser
+          : prevUser
+      );
+      console.log("This is current user: ", userData.name);
+    };
+
     fetchTeams();
+    fetchUser();
     socket.on("receiveMessage", handleNewMessage);
+    socket.on("updateOnlineUsers", handleOnlineUsers);
 
     return () => {
       socket.off("receiveMessage", handleNewMessage); // ✅ Cleanup to prevent duplicates
+      socket.off("updateOnlineUsers", handleOnlineUsers);
     };
-  }, []);
+  }, [onlineUsers, currentUser]);
 
   useEffect(() => {
     if (currentTeam) {
       fetchMessages(currentTeam);
-      socket.emit("joinTeamChat", currentTeam);
+      socket.emit("joinTeamChat", {
+        teamId: currentTeam,
+        userId: currentUser.id,
+      });
     }
-  }, [currentTeam]);
+  }, [currentTeam, currentUser]);
 
   const fetchTeams = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/teams`, {
         headers: {
+<<<<<<< HEAD
           Authorization:
             "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3Yzk3ZmFlZTMwNjY0ZWQ1NmYzMWMzZCIsImlhdCI6MTc0MTI1ODgwNSwiZXhwIjoxNzQ5MDM0ODA1fQ.yZQAgZFlIOPdVRxcx6PcQGcsHiM6j8u-hJmv4Ccs2_s",
+=======
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+>>>>>>> 447c378da3fd5650fe79419e23f65e05ab998158
         },
       });
       setTeams(response.data?.data?.data || []);
@@ -94,8 +136,12 @@ const TeamChatPage = () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/chats/${teamId}`, {
         headers: {
+<<<<<<< HEAD
           Authorization:
             "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3Yzk3ZmFlZTMwNjY0ZWQ1NmYzMWMzZCIsImlhdCI6MTc0MTI1ODgwNSwiZXhwIjoxNzQ5MDM0ODA1fQ.yZQAgZFlIOPdVRxcx6PcQGcsHiM6j8u-hJmv4Ccs2_s",
+=======
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+>>>>>>> 447c378da3fd5650fe79419e23f65e05ab998158
         },
       });
       setMessages((prev) =>
@@ -110,10 +156,33 @@ const TeamChatPage = () => {
     e.preventDefault();
     if (!message.trim()) return;
 
+<<<<<<< HEAD
     try {
       socket.emit("sendMessage", {
         teamId: currentTeam,
         sender: "67c97faee30664ed56f31c3d",
+=======
+    // const newMessage = {
+    //   content: message,
+    //   sender: "67c154ae8c454ccf47697f59", // Replace with actual sender ID
+    //   teamId: currentTeam,
+    // };
+
+    // setMessages((prevMessages) => [...prevMessages, newMessage]);
+
+    try {
+      // await axios.post(`${API_BASE_URL}/chats`, newMessage, {
+      //   headers: {
+      //     Authorization:
+      //       "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1NGFlOGM0NTRjY2Y0NzY5N2Y1OSIsImlhdCI6MTc0MTI1NDU5OSwiZXhwIjoxNzQ5MDMwNTk5fQ.O_CT09ix6ebwigkhO5-9t8lMDl8y6iJP3lDKc8sndFo",
+      //   },
+      // });
+      // socket.emit("sendMessage", response.data);
+      // const user = { id: "67c154ae8c454ccf47697f59", name: "Hardik" };
+      socket.emit("sendMessage", {
+        teamId: currentTeam,
+        sender: currentUser.id,
+>>>>>>> 447c378da3fd5650fe79419e23f65e05ab998158
         message,
       });
       setMessage("");
@@ -147,6 +216,19 @@ const TeamChatPage = () => {
             </FormControl>
           </Box>
           <Divider />
+          <Box sx={{ p: 2 }}>
+            <Typography variant="subtitle1">Online Users</Typography>
+            <List>
+              {onlineUsers.map((user, index) => (
+                <ListItem key={index}>
+                  <ListItemIcon sx={{ minWidth: "unset", mr: 1 }}>
+                    <FiberManualRecord sx={{ color: "green", fontSize: 12 }} />
+                  </ListItemIcon>
+                  <ListItemText primary={user.name} sx={{ ml: 0 }} />
+                </ListItem>
+              ))}
+            </List>
+          </Box>
         </Paper>
       </Grid>
 
@@ -166,7 +248,13 @@ const TeamChatPage = () => {
                 sx={{
                   display: "flex",
                   justifyContent:
+<<<<<<< HEAD
                     msg.sender.name === "Hardik04" ? "flex-end" : "flex-start",
+=======
+                    msg.sender.name === currentUser.name
+                      ? "flex-end"
+                      : "flex-start",
+>>>>>>> 447c378da3fd5650fe79419e23f65e05ab998158
                   mb: 2,
                 }}
               >
@@ -174,16 +262,33 @@ const TeamChatPage = () => {
                   sx={{
                     p: 2,
                     backgroundColor:
+<<<<<<< HEAD
                       msg.sender.name === "Hardik04" ? "#1976d2" : "#f5f5f5",
                     color:
                       msg.sender.name === "Hardik04" ? "#ffffff" : "#000000",
+=======
+                      msg.sender.name === currentUser.name
+                        ? "#1976d2"
+                        : "#f5f5f5",
+                    color:
+                      msg.sender.name === currentUser.name
+                        ? "#ffffff"
+                        : "#000000",
+>>>>>>> 447c378da3fd5650fe79419e23f65e05ab998158
                     maxWidth: "70%",
                     borderRadius: 2,
                   }}
                 >
                   <Typography variant="body1">{msg.content}</Typography>
                   <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                    {msg.sender.name}
+                    {msg.sender.name},{" "}
+                    {new Date(msg.timestamp).toLocaleString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true,
+                    })}
                   </Typography>
                 </Paper>
               </Box>
