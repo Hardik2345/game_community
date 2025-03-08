@@ -12,7 +12,7 @@ import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import GroupsIcon from "@mui/icons-material/Groups";
 import ChatIcon from "@mui/icons-material/Chat";
 import LogoutIcon from "@mui/icons-material/Logout";
-import { AppProvider } from "@toolpad/core/AppProvider";
+import { AppProvider } from "@toolpad/core";
 import { DashboardLayout, ThemeSwitcher } from "@toolpad/core/DashboardLayout";
 import { PageContainer } from "@toolpad/core/PageContainer";
 import DashboardPage from "./DashboardPage";
