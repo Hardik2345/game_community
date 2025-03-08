@@ -29,7 +29,6 @@ module.exports = function chatSocket(io) {
       const userIds = Object.keys(onlineUsers);
 
       const users = await User.find({ _id: { $in: userIds } }).select("name");
-      console.log(users);
 
       console.log(`✅ User ${userId} joined team chat: ${teamId}`);
       io.to(teamId.toString()).emit("updateOnlineUsers", users);
@@ -72,7 +71,6 @@ module.exports = function chatSocket(io) {
         const userIds = Object.keys(onlineUsers);
 
         const users = await User.find({ _id: { $in: userIds } }).select("name");
-        console.log(users);
         io.emit("updateOnlineUsers", users); // Notify clients
       }
     });

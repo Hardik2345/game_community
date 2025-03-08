@@ -48,6 +48,7 @@ const TeamChatPage = () => {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [currentUser, setCurrentUser] = useState("");
   const messageEndRef = useRef(null);
 
   useEffect(() => {
@@ -71,33 +72,53 @@ const TeamChatPage = () => {
       setOnlineUsers(users);
     };
 
+    const fetchUser = async () => {
+      const response = await axios.get(`${API_BASE_URL}/users/me`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      const userData = response?.data?.data?.data;
+      const newUser = {
+        id: userData._id,
+        name: userData.name,
+      };
+
+      // ✅ Prevent unnecessary re-renders by updating state only if the user has changed
+      setCurrentUser((prevUser) =>
+        JSON.stringify(prevUser) !== JSON.stringify(newUser)
+          ? newUser
+          : prevUser
+      );
+      console.log("This is current user: ", userData.name);
+    };
+
     fetchTeams();
+    fetchUser();
     socket.on("receiveMessage", handleNewMessage);
     socket.on("updateOnlineUsers", handleOnlineUsers);
-    console.log(onlineUsers);
 
     return () => {
       socket.off("receiveMessage", handleNewMessage); // ✅ Cleanup to prevent duplicates
       socket.off("updateOnlineUsers", handleOnlineUsers);
     };
-  }, [onlineUsers]);
+  }, [onlineUsers, currentUser]);
 
   useEffect(() => {
     if (currentTeam) {
       fetchMessages(currentTeam);
       socket.emit("joinTeamChat", {
         teamId: currentTeam,
-        userId: "67c154ae8c454ccf47697f59",
+        userId: currentUser.id,
       });
     }
-  }, [currentTeam]);
+  }, [currentTeam, currentUser]);
 
   const fetchTeams = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/teams`, {
         headers: {
-          Authorization:
-            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1NGFlOGM0NTRjY2Y0NzY5N2Y1OSIsImlhdCI6MTc0MTI1NDU5OSwiZXhwIjoxNzQ5MDMwNTk5fQ.O_CT09ix6ebwigkhO5-9t8lMDl8y6iJP3lDKc8sndFo",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
       setTeams(response.data?.data?.data || []);
@@ -110,8 +131,7 @@ const TeamChatPage = () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/chats/${teamId}`, {
         headers: {
-          Authorization:
-            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1NGFlOGM0NTRjY2Y0NzY5N2Y1OSIsImlhdCI6MTc0MTI1NDU5OSwiZXhwIjoxNzQ5MDMwNTk5fQ.O_CT09ix6ebwigkhO5-9t8lMDl8y6iJP3lDKc8sndFo",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
       setMessages((prev) =>
@@ -142,10 +162,10 @@ const TeamChatPage = () => {
       //   },
       // });
       // socket.emit("sendMessage", response.data);
-      const user = { id: "67c154ae8c454ccf47697f59", name: "Hardik" };
+      // const user = { id: "67c154ae8c454ccf47697f59", name: "Hardik" };
       socket.emit("sendMessage", {
         teamId: currentTeam,
-        sender: user.id,
+        sender: currentUser.id,
         message,
       });
       setMessage("");
@@ -211,7 +231,9 @@ const TeamChatPage = () => {
                 sx={{
                   display: "flex",
                   justifyContent:
-                    msg.sender.name === "Hardik" ? "flex-end" : "flex-start",
+                    msg.sender.name === currentUser.name
+                      ? "flex-end"
+                      : "flex-start",
                   mb: 2,
                 }}
               >
@@ -219,8 +241,13 @@ const TeamChatPage = () => {
                   sx={{
                     p: 2,
                     backgroundColor:
-                      msg.sender.name === "Hardik" ? "#1976d2" : "#f5f5f5",
-                    color: msg.sender.name === "Hardik" ? "#ffffff" : "#000000",
+                      msg.sender.name === currentUser.name
+                        ? "#1976d2"
+                        : "#f5f5f5",
+                    color:
+                      msg.sender.name === currentUser.name
+                        ? "#ffffff"
+                        : "#000000",
                     maxWidth: "70%",
                     borderRadius: 2,
                   }}

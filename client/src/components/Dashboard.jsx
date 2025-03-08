@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useNavigate } from "react-router-dom";
 import { extendTheme } from "@mui/material/styles";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -204,6 +205,7 @@ function ToolbarActionsSearch() {
 }
 
 export default function DashboardLayoutBasic() {
+  const navigate = useNavigate();
   const [session, setSession] = React.useState({
     user: {
       name: "Hardik Parikh",
@@ -215,13 +217,14 @@ export default function DashboardLayoutBasic() {
   const appAuthentication = React.useMemo(() => {
     return {
       signIn: () => {
-        setSession({
-          user: {
-            name: "Hardik Parikh",
-            email: "hardikparikh19@gmail.com",
-            image: "https://avatars.githubusercontent.com/u/141572034?v=4",
-          },
-        });
+        navigate("/signin");
+        // setSession({
+        //   user: {
+        //     name: "Hardik Parikh",
+        //     email: "hardikparikh19@gmail.com",
+        //     image: "https://avatars.githubusercontent.com/u/141572034?v=4",
+        //   },
+        // });
       },
       signOut: () => setSession(null),
     };
