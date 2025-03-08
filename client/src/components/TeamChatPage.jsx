@@ -61,8 +61,8 @@ const TeamChatPage = () => {
         {
           ...newMessage,
           sender: newMessage.sender || {
-            id: "67c154ae8c454ccf47697f59",
-            name: "Hardik",
+            id: "67c97faee30664ed56f31c3d",
+            name: "Hardik04",
           }, // Ensure sender data exists
         },
       ]);
@@ -145,15 +145,6 @@ const TeamChatPage = () => {
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!message.trim()) return;
-
-    // const newMessage = {
-    //   content: message,
-    //   sender: "67c154ae8c454ccf47697f59", // Replace with actual sender ID
-    //   teamId: currentTeam,
-    // };
-
-    // setMessages((prevMessages) => [...prevMessages, newMessage]);
-
     try {
       // await axios.post(`${API_BASE_URL}/chats`, newMessage, {
       //   headers: {

@@ -5,6 +5,7 @@ import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import Grid from "@mui/material/Grid";
 import backgroundImage from "../assets/image.jpg";
+import tournamentImage from "../assets/banner.jpg";
 import ReactVirtualizedTable from "./ReactVirtualizedTable";
 
 export default function LocalEventsPage() {
@@ -49,7 +50,46 @@ export default function LocalEventsPage() {
             </CardActions>
           </Card>
         </Grid>
-        {/* Duplicate or map this Grid item to add more cards */}
+
+        {/* New "Organize Tournament" Card */}
+        <Grid item xs={12} sm={6} md={4}>
+          <Card
+            sx={{
+              maxWidth: 300,
+              height: 200,
+              backgroundImage: `url(${tournamentImage})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              color: "black",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              borderRadius: "10px",
+              overflow: "hidden",
+            }}
+          >
+            <CardContent sx={{ backgroundColor: "transparent" }}>
+              <Typography
+                gutterBottom
+                variant="h1"
+                sx={{ fontSize: "30px", color: "#ff6600" }}
+              >
+                Create Tournament!
+              </Typography>
+            </CardContent>
+            <CardActions
+              sx={{ backgroundColor: "transparent", paddingLeft: "12px" }}
+            >
+              <Button
+                size="small"
+                variant="contained"
+                sx={{ borderRadius: "5px" }}
+              >
+                Get Started
+              </Button>
+            </CardActions>
+          </Card>
+        </Grid>
       </Grid>
 
       <Typography
