@@ -54,8 +54,8 @@ const TeamChatPage = () => {
         {
           ...newMessage,
           sender: newMessage.sender || {
-            id: "67c154ae8c454ccf47697f59",
-            name: "Hardik",
+            id: "67c97faee30664ed56f31c3d",
+            name: "Hardik04",
           }, // Ensure sender data exists
         },
       ]);
@@ -81,7 +81,7 @@ const TeamChatPage = () => {
       const response = await axios.get(`${API_BASE_URL}/teams`, {
         headers: {
           Authorization:
-            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1NGFlOGM0NTRjY2Y0NzY5N2Y1OSIsImlhdCI6MTc0MTIzNzI0MCwiZXhwIjoxNzQ5MDEzMjQwfQ.wvk5EFCA-JRgKCzludzqN9rDYfkF1SfO0XJ7bmWKdgA",
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3Yzk3ZmFlZTMwNjY0ZWQ1NmYzMWMzZCIsImlhdCI6MTc0MTI1ODgwNSwiZXhwIjoxNzQ5MDM0ODA1fQ.yZQAgZFlIOPdVRxcx6PcQGcsHiM6j8u-hJmv4Ccs2_s",
         },
       });
       setTeams(response.data?.data?.data || []);
@@ -95,7 +95,7 @@ const TeamChatPage = () => {
       const response = await axios.get(`${API_BASE_URL}/chats/${teamId}`, {
         headers: {
           Authorization:
-            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1NGFlOGM0NTRjY2Y0NzY5N2Y1OSIsImlhdCI6MTc0MTIzNzI0MCwiZXhwIjoxNzQ5MDEzMjQwfQ.wvk5EFCA-JRgKCzludzqN9rDYfkF1SfO0XJ7bmWKdgA",
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3Yzk3ZmFlZTMwNjY0ZWQ1NmYzMWMzZCIsImlhdCI6MTc0MTI1ODgwNSwiZXhwIjoxNzQ5MDM0ODA1fQ.yZQAgZFlIOPdVRxcx6PcQGcsHiM6j8u-hJmv4Ccs2_s",
         },
       });
       setMessages((prev) =>
@@ -110,20 +110,12 @@ const TeamChatPage = () => {
     e.preventDefault();
     if (!message.trim()) return;
 
-    const newMessage = {
-      content: message,
-      sender: "67c154ae8c454ccf47697f59", // Replace with actual sender ID
-      teamId: currentTeam,
-    };
-
     try {
-      const response = await axios.post(`${API_BASE_URL}/chats`, newMessage, {
-        headers: {
-          Authorization:
-            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1NGFlOGM0NTRjY2Y0NzY5N2Y1OSIsImlhdCI6MTc0MTE5NTQwOSwiZXhwIjoxNzQ4OTcxNDA5fQ.S-Kv-RlvxsVvFBT1fHnGWcBx51CX-ibW9TgE0pMgLi4",
-        },
+      socket.emit("sendMessage", {
+        teamId: currentTeam,
+        sender: "67c97faee30664ed56f31c3d",
+        message,
       });
-      socket.emit("sendMessage", response.data);
       setMessage("");
     } catch (error) {
       console.error("Error sending message", error);
@@ -174,7 +166,7 @@ const TeamChatPage = () => {
                 sx={{
                   display: "flex",
                   justifyContent:
-                    msg.sender.name === "You" ? "flex-end" : "flex-start",
+                    msg.sender.name === "Hardik04" ? "flex-end" : "flex-start",
                   mb: 2,
                 }}
               >
@@ -182,8 +174,9 @@ const TeamChatPage = () => {
                   sx={{
                     p: 2,
                     backgroundColor:
-                      msg.sender.name === "You" ? "#1976d2" : "#f5f5f5",
-                    color: msg.sender.name === "You" ? "#ffffff" : "#000000",
+                      msg.sender.name === "Hardik04" ? "#1976d2" : "#f5f5f5",
+                    color:
+                      msg.sender.name === "Hardik04" ? "#ffffff" : "#000000",
                     maxWidth: "70%",
                     borderRadius: 2,
                   }}
