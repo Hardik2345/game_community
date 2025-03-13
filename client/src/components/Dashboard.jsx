@@ -92,7 +92,7 @@ const demoTheme = extendTheme({
 });
 
 function SidebarFooter({ session, authentication }) {
-  if (!session?.user) {
+  if (!session?.user?.name) {
     return null;
   }
 
@@ -221,31 +221,42 @@ export default function DashboardLayoutBasic() {
 
   React.useEffect(() => {
     const fetchUser = async () => {
-      const response = await axios.get(`${API_BASE_URL}/users/me`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      const userData = response?.data?.data?.data;
-      const newUser = {
-        id: userData._id,
-        name: userData.name,
-        email: userData.email,
-      };
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setCurrentUser(null);
+        return;
+      }
 
-      // ✅ Prevent unnecessary re-renders by updating state only if the user has changed
-      setCurrentUser((prevUser) =>
-        JSON.stringify(prevUser) !== JSON.stringify(newUser)
-          ? newUser
-          : prevUser
-      );
-      console.log("This is current user: ", currentUser.name);
+      try {
+        const response = await axios.get(`${API_BASE_URL}/users/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const userData = response?.data?.data?.data;
+        const newUser = {
+          id: userData._id,
+          name: userData.name,
+          email: userData.email,
+        };
+
+        setCurrentUser((prevUser) =>
+          JSON.stringify(prevUser) !== JSON.stringify(newUser)
+            ? newUser
+            : prevUser
+        );
+      } catch (error) {
+        console.error("Error fetching user data", error);
+        setCurrentUser({});
+        localStorage.removeItem("token");
+      }
     };
+
     fetchUser();
-  });
+  }, []);
 
   React.useEffect(() => {
-    if (currentUser.name) {
+    if (currentUser) {
       setSession((prevSession) => ({
         ...prevSession,
         user: {
@@ -253,6 +264,11 @@ export default function DashboardLayoutBasic() {
           name: currentUser.name,
           email: currentUser.email,
         },
+      }));
+    } else {
+      setSession((prevSession) => ({
+        ...prevSession,
+        user: null, // ✅ Properly reset user in session when logged out
       }));
     }
   }, [currentUser]);
@@ -270,8 +286,9 @@ export default function DashboardLayoutBasic() {
         // });
       },
       signOut: () => {
-        localStorage.removeItem("token");
-        setSession(null);
+        localStorage.removeItem("token"); // Remove token
+        setSession(null); // Reset session
+        setCurrentUser(null); // Clear currentUser state
       },
     };
   }, []);
@@ -318,17 +335,20 @@ export default function DashboardLayoutBasic() {
           ),
         }}
         slotProps={{
-          toolbarAccount: {
-            slotProps: {
-              popover: {
-                open: false,
-                sx: { display: "none" },
+          toolbarAccount: currentUser
+            ? {
+                avatar: { src: currentUser.avatar || "" }, // Show avatar if logged in
+                slotProps: {
+                  popover: { open: false, sx: { display: "block" } },
+                  signOutButton: { sx: { display: "block" } },
+                },
+              }
+            : {
+                slotProps: {
+                  popover: { open: false, sx: { display: "none" } },
+                  signOutButton: { sx: { display: "none" } },
+                },
               },
-              signOutButton: {
-                sx: { display: "none" },
-              },
-            },
-          },
         }}
         disableCollapsibleSidebar={true}
       >
