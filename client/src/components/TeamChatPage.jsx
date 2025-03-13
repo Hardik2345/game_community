@@ -14,8 +14,8 @@ import {
   Divider,
   List,
   ListItem,
-  ListItemIcon,
   ListItemText,
+  Avatar,
 } from "@mui/material";
 import { Send as SendIcon } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
@@ -195,10 +195,17 @@ const TeamChatPage = () => {
             <List>
               {onlineUsers.map((user, index) => (
                 <ListItem key={index}>
-                  <ListItemIcon sx={{ minWidth: "unset", mr: 1 }}>
-                    <FiberManualRecord sx={{ color: "green", fontSize: 12 }} />
-                  </ListItemIcon>
-                  <ListItemText primary={user.name} sx={{ ml: 0 }} />
+                  <Avatar>{user.name.charAt(0).toUpperCase()}</Avatar>
+                  <FiberManualRecord
+                    sx={{
+                      color: "green",
+                      fontSize: 12,
+                      position: "absolute",
+                      bottom: 8,
+                      left: 44,
+                    }}
+                  />
+                  <ListItemText primary={user.name} sx={{ ml: 1 }} />
                 </ListItem>
               ))}
             </List>
@@ -211,7 +218,7 @@ const TeamChatPage = () => {
           <Box sx={{ p: 2, borderBottom: 1, borderColor: "divider" }}>
             <Typography variant="h6">
               {teams.find((team) => team._id === currentTeam)?.name ||
-                "Loading..."}
+                "Select a team"}
             </Typography>
           </Box>
 

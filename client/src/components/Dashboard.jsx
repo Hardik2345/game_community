@@ -27,6 +27,10 @@ import Typography from "@mui/material/Typography";
 import PropTypes from "prop-types";
 import SportsEsportsIcon from "@mui/icons-material/SportsEsports";
 import GameChatPage from "./GameChatPage";
+import axios from "axios";
+
+const API_BASE_URL = "http://localhost:8000/api/v1";
+
 const NAVIGATION = [
   {
     segment: "dashboard",
@@ -206,13 +210,52 @@ function ToolbarActionsSearch() {
 
 export default function DashboardLayoutBasic() {
   const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = React.useState({});
   const [session, setSession] = React.useState({
     user: {
-      name: "Hardik Parikh",
-      email: "hardikparikh19@gmail.com",
+      name: "",
+      email: "",
       image: "https://avatars.githubusercontent.com/u/141572034?v=4",
     },
   });
+
+  React.useEffect(() => {
+    const fetchUser = async () => {
+      const response = await axios.get(`${API_BASE_URL}/users/me`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      const userData = response?.data?.data?.data;
+      const newUser = {
+        id: userData._id,
+        name: userData.name,
+        email: userData.email,
+      };
+
+      // ✅ Prevent unnecessary re-renders by updating state only if the user has changed
+      setCurrentUser((prevUser) =>
+        JSON.stringify(prevUser) !== JSON.stringify(newUser)
+          ? newUser
+          : prevUser
+      );
+      console.log("This is current user: ", currentUser.name);
+    };
+    fetchUser();
+  });
+
+  React.useEffect(() => {
+    if (currentUser.name) {
+      setSession((prevSession) => ({
+        ...prevSession,
+        user: {
+          ...prevSession.user,
+          name: currentUser.name,
+          email: currentUser.email,
+        },
+      }));
+    }
+  }, [currentUser]);
 
   const appAuthentication = React.useMemo(() => {
     return {
@@ -226,7 +269,10 @@ export default function DashboardLayoutBasic() {
         //   },
         // });
       },
-      signOut: () => setSession(null),
+      signOut: () => {
+        localStorage.removeItem("token");
+        setSession(null);
+      },
     };
   }, []);
 
