@@ -166,7 +166,7 @@ const TeamChatPage = () => {
   };
 
   return (
-    <Grid container spacing={1}>
+    <Grid container spacing={0}>
       <Grid item xs={3}>
         <Paper
           sx={{ height: "calc(100vh - 100px)", margin: 1, overflow: "auto" }}
@@ -215,10 +215,10 @@ const TeamChatPage = () => {
 
       <Grid item xs={9}>
         <ChatContainer>
-          <Box sx={{ p: 2, borderBottom: 1, borderColor: "divider" }}>
+          <Box sx={{ p: 2.5, borderBottom: 1, borderColor: "divider" }}>
             <Typography variant="h6">
               {teams.find((team) => team._id === currentTeam)?.name ||
-                "Select a team"}
+                "Select a team to start chatting!"}
             </Typography>
           </Box>
 
