@@ -88,7 +88,6 @@ const TeamChatPage = () => {
           ? newUser
           : prevUser
       );
-      console.log("This is current user: ", userData.name);
     };
     fetchUser();
     socket.on("receiveMessage", handleNewMessage);
