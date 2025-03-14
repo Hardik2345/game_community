@@ -41,6 +41,7 @@ const userSchema = new mongoose.Schema({
       message: "Passwords are not the same!",
     },
   },
+  team: [{ type: mongoose.Schema.Types.ObjectId, ref: "Team" }],
   passwordChangedAt: Date,
   passwordResetToken: String,
   passwordResetExpires: Date,
@@ -50,6 +51,8 @@ const userSchema = new mongoose.Schema({
     select: false,
   },
 });
+
+userSchema.index({ team: 1 });
 
 //Hash the password if it was changed and remove the passwordConfirm field
 userSchema.pre("save", async function (next) {

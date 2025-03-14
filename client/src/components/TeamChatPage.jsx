@@ -60,10 +60,7 @@ const TeamChatPage = () => {
         ...prev,
         {
           ...newMessage,
-          sender: newMessage.sender || {
-            id: "67c97faee30664ed56f31c3d",
-            name: "Hardik04",
-          }, // Ensure sender data exists
+          sender: newMessage.sender,
         },
       ]);
     };
@@ -83,6 +80,7 @@ const TeamChatPage = () => {
         id: userData._id,
         name: userData.name,
       };
+      setTeams(userData.team);
 
       // ✅ Prevent unnecessary re-renders by updating state only if the user has changed
       setCurrentUser((prevUser) =>
@@ -92,8 +90,6 @@ const TeamChatPage = () => {
       );
       console.log("This is current user: ", userData.name);
     };
-
-    fetchTeams();
     fetchUser();
     socket.on("receiveMessage", handleNewMessage);
     socket.on("updateOnlineUsers", handleOnlineUsers);
@@ -114,19 +110,6 @@ const TeamChatPage = () => {
     }
   }, [currentTeam, currentUser]);
 
-  const fetchTeams = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/teams`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      setTeams(response.data?.data?.data || []);
-    } catch (error) {
-      console.error("Error fetching teams", error);
-    }
-  };
-
   const fetchMessages = async (teamId) => {
     try {
       const response = await axios.get(`${API_BASE_URL}/chats/${teamId}`, {
@@ -146,14 +129,6 @@ const TeamChatPage = () => {
     e.preventDefault();
     if (!message.trim()) return;
     try {
-      // await axios.post(`${API_BASE_URL}/chats`, newMessage, {
-      //   headers: {
-      //     Authorization:
-      //       "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1NGFlOGM0NTRjY2Y0NzY5N2Y1OSIsImlhdCI6MTc0MTI1NDU5OSwiZXhwIjoxNzQ5MDMwNTk5fQ.O_CT09ix6ebwigkhO5-9t8lMDl8y6iJP3lDKc8sndFo",
-      //   },
-      // });
-      // socket.emit("sendMessage", response.data);
-      // const user = { id: "67c154ae8c454ccf47697f59", name: "Hardik" };
       socket.emit("sendMessage", {
         teamId: currentTeam,
         sender: currentUser.id,
