@@ -1,6 +1,7 @@
 const catchAsync = require("./../utils/catchAsync");
 const AppError = require("./../utils/appError");
 const APIFeatures = require("./../utils/apiFeatures");
+const axios = require("axios");
 
 exports.deleteOne = (Model) =>
   catchAsync(async (req, res, next) => {
@@ -38,6 +39,26 @@ exports.updateOne = (Model) =>
 exports.createOne = (Model) =>
   catchAsync(async (req, res, next) => {
     const doc = await Model.create(req.body);
+
+    if (Model.modelName === "Event") {
+      const url = `https://AP.api.riotgames.com/val/ranked/v1/leaderboards/by-act/16118998-4705-5813-86dd-0292a2439d90`; //hitting this api endpoint to get the data of the leaderboards and display it on my front end, I need access to the matchlists route as well as the get match by id route which I don't have in the devloper's key.
+
+      axios
+        .get(url, {
+          headers: {
+            "X-Riot-Token": process.env.API_KEY,
+          },
+        })
+        .then((response) => {
+          console.log("Recent Matches:", response.data);
+        })
+        .catch((error) => {
+          console.error(
+            "Error fetching recent matches:",
+            error.response ? error.response.data : error.message
+          );
+        });
+    }
 
     res.status(201).json({
       status: "success",
