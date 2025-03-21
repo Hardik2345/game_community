@@ -4,6 +4,9 @@ const User = require("./userModel");
 const teamSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
   members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  tagline: { type: String, required: true, unique: true },
+  description: { type: String, required: true, unique: true },
+  createdBy: { type: String, required: true, unique: true },
   createdAt: { type: Date, default: Date.now },
 });
 
