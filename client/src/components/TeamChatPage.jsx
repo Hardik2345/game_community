@@ -22,7 +22,7 @@ import { styled } from "@mui/material/styles";
 import FiberManualRecord from "@mui/icons-material/FiberManualRecord";
 
 const API_BASE_URL = "http://localhost:8000/api/v1";
-const socket = io("http://localhost:8000", { transports: ["websocket"] }); // Adjust based on backend
+const socket = io("http://localhost:8000", { transports: ["websocket"] });
 
 const ChatContainer = styled(Paper)(({ theme }) => ({
   height: "calc(100vh - 100px)",
@@ -51,56 +51,60 @@ const TeamChatPage = () => {
   const [currentUser, setCurrentUser] = useState({});
   const messageEndRef = useRef(null);
 
+  // Setup socket listeners only once on mount
   useEffect(() => {
     const handleNewMessage = (newMessage) => {
       if (!newMessage.sender || !newMessage.sender.name) {
         console.error("Received message without sender info:", newMessage);
       }
-      setMessages((prev) => [
-        ...prev,
-        {
-          ...newMessage,
-          sender: newMessage.sender,
-        },
-      ]);
+      setMessages((prev) => [...prev, newMessage]);
     };
 
     const handleOnlineUsers = (users) => {
       setOnlineUsers(users);
     };
 
-    const fetchUser = async () => {
-      const response = await axios.get(`${API_BASE_URL}/users/me`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      const userData = response?.data?.data?.data;
-      const newUser = {
-        id: userData._id,
-        name: userData.name,
-      };
-      setTeams(userData.team);
-
-      // ✅ Prevent unnecessary re-renders by updating state only if the user has changed
-      setCurrentUser((prevUser) =>
-        JSON.stringify(prevUser) !== JSON.stringify(newUser)
-          ? newUser
-          : prevUser
-      );
-    };
-    fetchUser();
     socket.on("receiveMessage", handleNewMessage);
     socket.on("updateOnlineUsers", handleOnlineUsers);
 
     return () => {
-      socket.off("receiveMessage", handleNewMessage); // ✅ Cleanup to prevent duplicates
+      socket.off("receiveMessage", handleNewMessage);
       socket.off("updateOnlineUsers", handleOnlineUsers);
     };
-  }, [onlineUsers, currentUser]);
+  }, []);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/users/me`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        const userData = response?.data?.data?.data;
+        const newUser = {
+          id: userData._id,
+          name: userData.name,
+        };
+        setTeams(userData.team);
+
+        // Update state only if the user has changed
+        setCurrentUser((prevUser) =>
+          JSON.stringify(prevUser) !== JSON.stringify(newUser)
+            ? newUser
+            : prevUser
+        );
+      } catch (error) {
+        console.error("Error fetching user", error);
+      }
+    };
+    fetchUser();
+  }, []);
 
   useEffect(() => {
     if (currentTeam) {
+      // Optionally notify the server about leaving previous room (if applicable)
+      // socket.emit("leaveTeamChat", { teamId: previousTeamId, userId: currentUser.id });
       fetchMessages(currentTeam);
       socket.emit("joinTeamChat", {
         teamId: currentTeam,
@@ -116,9 +120,7 @@ const TeamChatPage = () => {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
-      setMessages((prev) =>
-        Array.isArray(response.data) ? response.data : [...prev]
-      );
+      setMessages(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Error fetching messages", error);
     }
