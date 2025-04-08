@@ -35,6 +35,9 @@ export default function MySquadPage() {
   // Store all squads the user is a member of (created or joined)
   const [squads, setSquads] = useState([]);
 
+  // Store all pending invites for the user
+  const [invites, setInvites] = useState([]);
+
   // State for Create Squad Dialog
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const [newSquadName, setNewSquadName] = useState("");
@@ -45,22 +48,20 @@ export default function MySquadPage() {
   const [selectedSquad, setSelectedSquad] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
 
-  // Fetch current user and squads on component mount
+  // Fetch current user, squads, and invites on component mount
   useEffect(() => {
     const fetchUserData = async () => {
       try {
         const token = localStorage.getItem("token");
         const response = await axios.get(
           "http://localhost:8000/api/v1/users/me",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
         const userData = response?.data?.data?.data;
         const newUser = {
           id: userData._id,
           name: userData.name,
-          avatar: userData.avatar || "", // Use user avatar if available
+          avatar: userData.avatar || "",
         };
         setCurrentUser(newUser);
         // Assuming the user's teams are stored in userData.team array
@@ -69,8 +70,44 @@ export default function MySquadPage() {
         console.error("Error fetching user data:", error);
       }
     };
+
     fetchUserData();
   }, []);
+
+  // Function to fetch invites
+  const fetchInvites = async () => {
+    if (currentUser) {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get(
+          "http://localhost:8000/api/v1/invites",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        console.log("Invites response:", response);
+        // Only pending invites are returned from the backend
+        setInvites(response.data.data || []);
+      } catch (error) {
+        console.error("Error fetching invites:", error);
+      }
+    }
+  };
+
+  // Initial fetch of invites when currentUser is available
+  useEffect(() => {
+    fetchInvites();
+  }, [currentUser]);
+
+  // Refresh invites function for the refresh button
+  const refreshInvites = async () => {
+    await fetchInvites();
+    setSnackbar({
+      open: true,
+      message: "Invites refreshed",
+      severity: "success",
+    });
+  };
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -79,7 +116,6 @@ export default function MySquadPage() {
   const handleCreateSquad = async () => {
     try {
       const token = localStorage.getItem("token");
-      // Fetch the latest user data to ensure we have the most up-to-date ID
       const userRes = await axios.get("http://localhost:8000/api/v1/users/me", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -89,7 +125,7 @@ export default function MySquadPage() {
         tagline: newSquadTagline,
         description: newSquadDescription,
         members: [userData._id],
-        createdBy: userData._id, // Added createdBy field
+        createdBy: userData._id,
       };
 
       await axios.post("http://localhost:8000/api/v1/teams", newSquad, {
@@ -100,8 +136,6 @@ export default function MySquadPage() {
         message: "Team created successfully!",
         severity: "success",
       });
-
-      // Append the newly created squad to state
       setSquads((prevSquads) => [...prevSquads, newSquad]);
       setNewSquadName("");
       setNewSquadTagline("");
@@ -138,6 +172,112 @@ export default function MySquadPage() {
     return { name: "Member", avatar: "" };
   };
 
+  // Handle invite accept action: update invite status and add current user to the team
+  const handleAcceptInvite = async (invite) => {
+    try {
+      const token = localStorage.getItem("token");
+      // 1. Accept the invite (update its status to accepted)
+      await axios.patch(
+        `http://localhost:8000/api/v1/invites/${invite._id}/accept`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      // Remove the invite from state
+      setInvites((prevInvites) =>
+        prevInvites.filter((i) => i._id !== invite._id)
+      );
+
+      // 2. Fetch all teams and locate the team matching the invite's squadName
+      const teamsRes = await axios.get("http://localhost:8000/api/v1/teams", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      let teams = [];
+      if (Array.isArray(teamsRes.data.data)) {
+        teams = teamsRes.data.data;
+      } else if (teamsRes.data.data && Array.isArray(teamsRes.data.data.data)) {
+        teams = teamsRes.data.data.data;
+      }
+      console.log("Teams fetched:", teams);
+
+      // 3. Find the team matching the invite's squadName
+      const teamToJoin = teams.find((team) => team.name === invite.squadName);
+      console.log("Team to join:", teamToJoin);
+      if (teamToJoin) {
+        // 4. Create an updated team object with the current user added to members (if not already included)
+        const updatedTeam = {
+          ...teamToJoin,
+          members: teamToJoin.members.includes(currentUser.id)
+            ? teamToJoin.members
+            : [...teamToJoin.members, currentUser],
+        };
+
+        // 5. Call the specialized PATCH endpoint to add the current user to the team.
+        await axios.patch(
+          "http://localhost:8000/api/v1/teams/add-member",
+          { teamId: teamToJoin._id, memberId: currentUser.id },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        // 6. Immediately update the local squads state so the joined team appears in the "Joined Squads" tab.
+        setSquads((prevSquads) => {
+          const teamExists = prevSquads.find(
+            (team) => team._id === teamToJoin._id
+          );
+          if (teamExists) {
+            return prevSquads.map((team) =>
+              team._id === teamToJoin._id ? updatedTeam : team
+            );
+          }
+          return [...prevSquads, updatedTeam];
+        });
+        setSnackbar({
+          open: true,
+          message: "Invite accepted and joined team!",
+          severity: "success",
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: "Team not found for this invite.",
+          severity: "error",
+        });
+      }
+    } catch (error) {
+      console.error("Error accepting invite:", error);
+      setSnackbar({
+        open: true,
+        message: "Failed to accept invite",
+        severity: "error",
+      });
+    }
+  };
+
+  // Handle invite decline action: update invite status to declined
+  const handleDeclineInvite = async (inviteId) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.patch(
+        `http://localhost:8000/api/v1/invites/${inviteId}/decline`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setInvites((prevInvites) =>
+        prevInvites.filter((invite) => invite._id !== inviteId)
+      );
+      setSnackbar({
+        open: true,
+        message: "Invite declined",
+        severity: "success",
+      });
+    } catch (error) {
+      console.error("Error declining invite:", error);
+      setSnackbar({
+        open: true,
+        message: "Failed to decline invite",
+        severity: "error",
+      });
+    }
+  };
+
   // Updated card style with border radius set to 10
   const cardStyle = {
     borderRadius: 10,
@@ -149,7 +289,7 @@ export default function MySquadPage() {
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
-    minHeight: "250px", // Set a minimum height for all cards
+    minHeight: "250px",
   };
 
   // Derived squads based on createdBy field once currentUser is loaded
@@ -178,9 +318,11 @@ export default function MySquadPage() {
         >
           <Tab label="Created Squads" />
           <Tab label="Joined Squads" />
+          <Tab label="Invites" />
         </Tabs>
       </Box>
 
+      {/* Created Squads Tab */}
       {tabValue === 0 && (
         <Box>
           <Box
@@ -246,6 +388,7 @@ export default function MySquadPage() {
         </Box>
       )}
 
+      {/* Joined Squads Tab */}
       {tabValue === 1 && (
         <Box>
           <Typography variant="h6" mb={2}>
@@ -294,6 +437,70 @@ export default function MySquadPage() {
                 </Grid>
               ))}
             </Grid>
+          )}
+        </Box>
+      )}
+
+      {/* Invites Tab */}
+      {tabValue === 2 && (
+        <Box>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 2,
+            }}
+          >
+            <Typography variant="h6">Pending Invites</Typography>
+            {/* Minimalist Refresh Button */}
+            <Button variant="outlined" size="small" onClick={refreshInvites}>
+              Refresh Invites
+            </Button>
+          </Box>
+          {invites.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">
+              You have no pending invites.
+            </Typography>
+          ) : (
+            invites.map((invite) => (
+              <Card
+                key={invite._id}
+                sx={{
+                  p: 2,
+                  mb: 2,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  boxShadow: 2,
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <Avatar src={invite.sender?.avatar || undefined}>
+                    {invite.sender && !invite.sender.avatar
+                      ? invite.sender.name[0]
+                      : ""}
+                  </Avatar>
+                  <Box sx={{ ml: 2 }}>
+                    <Typography variant="h6">{invite.squadName}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      From: {invite.sender?.name || "Unknown"}
+                    </Typography>
+                  </Box>
+                </Box>
+                <Box>
+                  <Button
+                    onClick={() => handleAcceptInvite(invite)}
+                    sx={{ mr: 1 }}
+                  >
+                    ✓
+                  </Button>
+                  <Button onClick={() => handleDeclineInvite(invite._id)}>
+                    ✗
+                  </Button>
+                </Box>
+              </Card>
+            ))
           )}
         </Box>
       )}

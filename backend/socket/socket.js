@@ -2,51 +2,75 @@ const Message = require("./../models/messageModel");
 const User = require("./../models/userModel");
 const { encrypt } = require("./../utils/encryption");
 
-const onlineUsers = {}; // Store online users { userId: socketId }
+// We'll still keep a global mapping for the "recruitPlayers" room,
+// but for team chats we will use room membership.
+const onlineRecruitUsers = {}; // For recruitPlayers only: { userId: socket.id }
 
 module.exports = function chatSocket(io) {
+  // Helper function to update online users for a given room (team chat)
+  async function updateRoomOnlineUsers(room) {
+    // io.sockets.adapter.rooms is a Map in Socket.IO v3+
+    const roomSockets = io.sockets.adapter.rooms.get(room);
+    let userIds = [];
+    if (roomSockets) {
+      for (const socketId of roomSockets) {
+        const clientSocket = io.sockets.sockets.get(socketId);
+        if (clientSocket && clientSocket.userId) {
+          userIds.push(clientSocket.userId);
+        }
+      }
+    }
+    const users = await User.find({ _id: { $in: userIds } }).select("name");
+    io.to(room).emit("updateOnlineUsers", users);
+  }
+
   io.on("connection", (socket) => {
     console.log(`🔌 User connected: ${socket.id}`);
 
-    // --- Team Chat event as before ---
+    // --- Team Chat Event ---
     socket.on("joinTeamChat", async ({ teamId, userId }) => {
-      if (!userId) {
-        console.log("❌ Missing userId, cannot join team chat");
-        console.log("Your team id is ", teamId);
+      if (!userId || !teamId) {
+        console.log("❌ Missing userId or teamId, cannot join team chat");
         return;
       }
-      onlineUsers[userId] = socket.id;
-      socket.join(teamId.toString());
-      const userIds = Object.keys(onlineUsers);
-      const users = await User.find({ _id: { $in: userIds } }).select("name");
-      console.log(`✅ User ${userId} joined team chat: ${teamId}`);
-      io.to(teamId.toString()).emit("updateOnlineUsers", users);
+
+      // If the user was in a previous team room, remove them from that room and update it.
+      if (socket.teamId && socket.teamId !== teamId.toString()) {
+        socket.leave(socket.teamId);
+        console.log(`🔄 User ${userId} left team chat: ${socket.teamId}`);
+        updateRoomOnlineUsers(socket.teamId);
+      }
+
+      // Save the team room and userId on the socket instance.
+      socket.teamId = teamId.toString();
+      socket.userId = userId;
+
+      socket.join(socket.teamId);
+      console.log(`✅ User ${userId} joined team chat: ${socket.teamId}`);
+
+      // Update the new room’s online users based on sockets present.
+      updateRoomOnlineUsers(socket.teamId);
     });
 
-    // --- New Recruit Players event ---
+    // --- Recruit Players Event ---
     socket.on("joinRecruitPlayers", async ({ userId }) => {
       if (!userId) {
         console.log("❌ Missing userId for recruit players");
         return;
       }
-      // Mark user as online
-      onlineUsers[userId] = socket.id;
-      // Join a common room for recruit players updates
+      // For recruit players, we use a global mapping.
+      onlineRecruitUsers[userId] = socket.id;
+      socket.userId = userId;
       socket.join("recruitPlayers");
-
-      // Fetch all users from your database
       const allUsers = await User.find({}).select("name _id");
-
-      // Determine online user IDs
-      const onlineUserIds = Object.keys(onlineUsers);
-
-      // Emit online status to only the recruit players room
+      const onlineUserIds = Object.keys(onlineRecruitUsers);
       io.to("recruitPlayers").emit("updateOnlineUsers", {
         allUsers,
         onlineUserIds,
       });
     });
 
+    // --- Send Message Event ---
     socket.on("sendMessage", async ({ teamId, sender, message }) => {
       if (!teamId || !sender || !message) return;
       const { encryptedData, iv } = encrypt(message);
@@ -67,17 +91,20 @@ module.exports = function chatSocket(io) {
       }
     });
 
+    // --- Disconnect Event ---
     socket.on("disconnect", async () => {
       console.log("🔌 User disconnected");
-      // Find and remove the disconnected user from onlineUsers
-      const userId = Object.keys(onlineUsers).find(
-        (key) => onlineUsers[key] === socket.id
-      );
-      if (userId) {
-        delete onlineUsers[userId];
-        // When a user disconnects, update recruit players room
+
+      // For team chat: update the room where the socket was.
+      if (socket.teamId) {
+        updateRoomOnlineUsers(socket.teamId);
+      }
+
+      // For recruit players, remove the user and update.
+      if (socket.userId && onlineRecruitUsers[socket.userId]) {
+        delete onlineRecruitUsers[socket.userId];
         const allUsers = await User.find({}).select("name _id");
-        const onlineUserIds = Object.keys(onlineUsers);
+        const onlineUserIds = Object.keys(onlineRecruitUsers);
         io.to("recruitPlayers").emit("updateOnlineUsers", {
           allUsers,
           onlineUserIds,
