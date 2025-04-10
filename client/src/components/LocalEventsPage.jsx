@@ -14,11 +14,15 @@ import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
 import Snackbar from "@mui/material/Snackbar";
 import MuiAlert from "@mui/material/Alert";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
+import Box from "@mui/material/Box";
 import tournamentImage from "../assets/banner.jpg";
-import ReactVirtualizedTable from "./ReactVirtualizedTable";
+import { display } from "@mui/system";
 
 export default function LocalEventsPage({ currentUser }) {
   const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState(0);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -38,10 +42,10 @@ export default function LocalEventsPage({ currentUser }) {
   const handleClickOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
   const handleSnackbarClose = () => setSnackbar({ ...snackbar, open: false });
-
   const handleChange = (e) => {
     setEventDetails({ ...eventDetails, [e.target.name]: e.target.value });
   };
+  const handleTabChange = (event, newValue) => setTab(newValue);
 
   const handleSubmit = async () => {
     const token = localStorage.getItem("token");
@@ -75,95 +79,83 @@ export default function LocalEventsPage({ currentUser }) {
 
   return (
     <>
-      <Grid container spacing={3} alignItems="flex-start">
-        {/* <Grid item xs={12} sm={12} md={12}>
-          <Card
-            sx={{
-              maxWidth: 300,
-              height: 200,
-              backgroundImage: `url(${backgroundImage})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              color: "black",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              borderRadius: "10px",
-              overflow: "hidden",
-            }}
-          >
-            <CardContent sx={{ backgroundColor: "transparent" }}>
-              <Typography
-                gutterBottom
-                variant="h1"
-                sx={{ fontSize: "35px", color: "#cfff00" }}
-              >
-                World Gaming Day!
-              </Typography>
-            </CardContent>
-            <CardActions
-              sx={{ backgroundColor: "transparent", paddingLeft: "12px" }}
-            >
-              <Button
-                size="small"
-                variant="contained"
-                sx={{ borderRadius: "5px" }}
-              >
-                Learn More
-              </Button>
-            </CardActions>
-          </Card>
-        </Grid> */}
-
-        <Grid item xs={12} sm={12} md={12}>
-          <Card
-            sx={{
-              maxWidth: 300,
-              height: 200,
-              backgroundImage: `url(${tournamentImage})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              color: "black",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              borderRadius: "10px",
-              overflow: "hidden",
-            }}
-          >
-            <CardContent sx={{ backgroundColor: "transparent" }}>
-              <Typography
-                gutterBottom
-                variant="h1"
-                sx={{ fontSize: "30px", color: "#ff6600" }}
-              >
-                Create Tournament!
-              </Typography>
-            </CardContent>
-            <CardActions
-              sx={{ backgroundColor: "transparent", paddingLeft: "12px" }}
-            >
-              <Button
-                size="small"
-                variant="contained"
-                sx={{ borderRadius: "5px" }}
-                onClick={handleClickOpen}
-              >
-                Get Started
-              </Button>
-            </CardActions>
-          </Card>
-        </Grid>
-      </Grid>
-
-      <Typography
-        variant="h4"
-        sx={{ paddingTop: "30px", paddingBottom: "10px" }}
+      {/* Tabs */}
+      <Box
+        sx={{
+          borderBottom: 1,
+          borderColor: "divider",
+          mb: 2,
+          display: "flex",
+          justifyContent: "center",
+        }}
       >
-        Leaderboard
-      </Typography>
-      <ReactVirtualizedTable />
+        <Tabs value={tab} onChange={handleTabChange}>
+          <Tab label="Tournaments" />
+          <Tab label="Active Tournaments" />
+        </Tabs>
+      </Box>
 
+      {/* Tab Panels */}
+      {tab === 0 && (
+        <Grid container spacing={3} alignItems="flex-start">
+          <Grid item xs={12} sm={12} md={12}>
+            <Card
+              sx={{
+                flexGrow: 5,
+                height: 200,
+                backgroundImage: `url(${tournamentImage})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                color: "black",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                borderRadius: "20px",
+                overflow: "hidden",
+                position: "relative",
+              }}
+            >
+              <CardContent sx={{ backgroundColor: "transparent" }}>
+                <Typography
+                  gutterBottom
+                  variant="h1"
+                  sx={{ fontSize: "30px", color: "#ff6600" }}
+                >
+                  Create Tournament!
+                </Typography>
+              </CardContent>
+              <CardActions
+                sx={{ backgroundColor: "transparent", paddingLeft: "12px" }}
+              >
+                <Button
+                  size="small"
+                  variant="contained"
+                  sx={{
+                    borderRadius: "5px",
+                    position: "absolute",
+                    bottom: 10,
+                    left: 15,
+                  }}
+                  onClick={handleClickOpen}
+                >
+                  Get Started
+                </Button>
+              </CardActions>
+            </Card>
+          </Grid>
+        </Grid>
+      )}
+
+      {tab === 1 && (
+        <Box p={2}>
+          <Typography variant="h6">
+            Active tournaments will be listed here...
+          </Typography>
+          {/* You can map through events here */}
+        </Box>
+      )}
+
+      {/* Dialog for Creating Event */}
       <Dialog open={open} onClose={handleClose}>
         <DialogTitle>Enter Event Details</DialogTitle>
         <DialogContent>
