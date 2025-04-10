@@ -18,7 +18,7 @@ import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Box from "@mui/material/Box";
 import tournamentImage from "../assets/banner.jpg";
-import { display } from "@mui/system";
+// import { display } from "@mui/system";
 
 export default function LocalEventsPage({ currentUser }) {
   const [open, setOpen] = useState(false);
