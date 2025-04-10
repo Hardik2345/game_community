@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+/* eslint-disable react/prop-types */
+import { useContext, useEffect, useState } from "react";
 import io from "socket.io-client";
 import {
   Card,
@@ -20,59 +21,22 @@ import {
   MenuItem,
 } from "@mui/material";
 import axios from "axios";
+import context from "../context/context";
 
 // Adjust the URL to match your server's address
 const socket = io("http://localhost:8000", { transports: ["websocket"] });
 
-export default function RecruitPlayersPage() {
+export default function RecruitPlayersPage({ currentUser }) {
+  const a = useContext(context);
   const [players, setPlayers] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [teams, setTeams] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [selectedTeam, setSelectedTeam] = useState("");
 
-  // Fetch current user data
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(
-          "http://localhost:8000/api/v1/users/me",
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        const userData = response?.data?.data?.data;
-        const newUser = {
-          id: userData._id,
-          name: userData.name,
-        };
-        setCurrentUser(newUser);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      }
-    };
-    fetchUserData();
-  }, []);
-
   // Fetch teams created by the current user
   useEffect(() => {
-    const fetchTeams = async () => {
-      if (currentUser) {
-        try {
-          const token = localStorage.getItem("token");
-          // Adjust endpoint as per your API route for fetching user teams
-          const response = await axios.get(
-            "http://localhost:8000/api/v1/users/me",
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          // Assuming the returned data has a "teams" array
-          setTeams(response.data?.data?.data?.team);
-        } catch (error) {
-          console.error("Error fetching teams:", error);
-        }
-      }
-    };
-    fetchTeams();
+    a.fetchTeams();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
 
   // Join recruit players room via socket.io
@@ -141,7 +105,7 @@ export default function RecruitPlayersPage() {
 
   return (
     <>
-      <Grid container spacing={0}>
+      <Grid container spacing={0} rowGap={2}>
         {players
           .filter((player) => player._id !== currentUser?.id)
           .map((player, index) => (
@@ -247,7 +211,7 @@ export default function RecruitPlayersPage() {
               onChange={(e) => setSelectedTeam(e.target.value)}
               label="Select Team"
             >
-              {teams.map((team) => (
+              {a.teams.map((team) => (
                 <MenuItem key={team._id} value={team.name}>
                   {team.name}
                 </MenuItem>

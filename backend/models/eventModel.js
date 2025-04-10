@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const slugify = require("slugify");
+const User = require("./userModel");
 
 const eventSchema = new mongoose.Schema({
   name: {
@@ -11,6 +12,7 @@ const eventSchema = new mongoose.Schema({
     minlength: [10, "An Event name must have more or equal then 10 characters"],
     // validate: [validator.isAlpha, 'Tour name must only contain characters']
   },
+  members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   slug: String,
   duration: {
     type: Number,
@@ -41,6 +43,7 @@ const eventSchema = new mongoose.Schema({
     type: String,
     required: [true, "An event must have a cover image"],
   },
+  createdBy: { type: String, required: true },
   createdAt: {
     type: Date,
     default: Date.now(),
@@ -60,6 +63,25 @@ eventSchema.virtual("durationDays").get(function () {
 eventSchema.pre("save", function (next) {
   this.slug = slugify(this.name, { lower: true });
   next();
+});
+
+eventSchema.pre(/^find/, function (next) {
+  this.populate("members", "name email"); // Fetch selected fields
+  next();
+});
+
+eventSchema.post("save", async function (doc, next) {
+  try {
+    if (doc.members && doc.members.length > 0) {
+      await User.updateMany(
+        { _id: { $in: doc.members } },
+        { $addToSet: { team: doc._id } } // Ensures no duplicate team IDs
+      );
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
 const Event = mongoose.model("Event", eventSchema);

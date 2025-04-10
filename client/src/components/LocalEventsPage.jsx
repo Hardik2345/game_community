@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import { useState } from "react";
 import axios from "axios";
 import Card from "@mui/material/Card";
@@ -13,11 +14,10 @@ import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
 import Snackbar from "@mui/material/Snackbar";
 import MuiAlert from "@mui/material/Alert";
-import backgroundImage from "../assets/image.jpg";
 import tournamentImage from "../assets/banner.jpg";
 import ReactVirtualizedTable from "./ReactVirtualizedTable";
 
-export default function LocalEventsPage() {
+export default function LocalEventsPage({ currentUser }) {
   const [open, setOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -32,6 +32,7 @@ export default function LocalEventsPage() {
     price: "",
     description: "",
     imageCover: "",
+    createdBy: currentUser.id,
   });
 
   const handleClickOpen = () => setOpen(true);
@@ -45,9 +46,17 @@ export default function LocalEventsPage() {
   const handleSubmit = async () => {
     const token = localStorage.getItem("token");
     try {
-      await axios.post("http://localhost:8000/api/v1/events", eventDetails, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const updatedEventDetails = {
+        ...eventDetails,
+        createdBy: currentUser.id,
+      };
+      await axios.post(
+        "http://localhost:8000/api/v1/events",
+        updatedEventDetails,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setSnackbar({
         open: true,
         message: "Event created successfully!",
@@ -67,7 +76,7 @@ export default function LocalEventsPage() {
   return (
     <>
       <Grid container spacing={3} alignItems="flex-start">
-        <Grid item xs={12} sm={6} md={4}>
+        {/* <Grid item xs={12} sm={12} md={12}>
           <Card
             sx={{
               maxWidth: 300,
@@ -104,9 +113,9 @@ export default function LocalEventsPage() {
               </Button>
             </CardActions>
           </Card>
-        </Grid>
+        </Grid> */}
 
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid item xs={12} sm={12} md={12}>
           <Card
             sx={{
               maxWidth: 300,

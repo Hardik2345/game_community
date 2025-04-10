@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { extendTheme } from "@mui/material/styles";
 import Stack from "@mui/material/Stack";
@@ -27,9 +28,10 @@ import Typography from "@mui/material/Typography";
 import PropTypes from "prop-types";
 import SportsEsportsIcon from "@mui/icons-material/SportsEsports";
 import GameChatPage from "./GameChatPage";
-import axios from "axios";
+// import axios from "axios";
+import context from "../context/context";
 
-const API_BASE_URL = "http://localhost:8000/api/v1";
+// const API_BASE_URL = "http://localhost:8000/api/v1";
 
 const NAVIGATION = [
   {
@@ -209,8 +211,8 @@ function ToolbarActionsSearch() {
 }
 
 export default function DashboardLayoutBasic() {
+  const a = useContext(context);
   const navigate = useNavigate();
-  const [currentUser, setCurrentUser] = React.useState({});
   const [session, setSession] = React.useState({
     user: {
       name: "",
@@ -220,49 +222,18 @@ export default function DashboardLayoutBasic() {
   });
 
   React.useEffect(() => {
-    const fetchUser = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setCurrentUser(null);
-        return;
-      }
-
-      try {
-        const response = await axios.get(`${API_BASE_URL}/users/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const userData = response?.data?.data?.data;
-        const newUser = {
-          id: userData._id,
-          name: userData.name,
-          email: userData.email,
-        };
-
-        setCurrentUser((prevUser) =>
-          JSON.stringify(prevUser) !== JSON.stringify(newUser)
-            ? newUser
-            : prevUser
-        );
-      } catch (error) {
-        console.error("Error fetching user data", error);
-        setCurrentUser({});
-        localStorage.removeItem("token");
-      }
-    };
-
-    fetchUser();
+    a.fetchUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   React.useEffect(() => {
-    if (currentUser) {
+    if (a.currentUser) {
       setSession((prevSession) => ({
         ...prevSession,
         user: {
           ...prevSession.user,
-          name: currentUser.name,
-          email: currentUser.email,
+          name: a.currentUser.name,
+          email: a.currentUser.email,
         },
       }));
     } else {
@@ -271,26 +242,20 @@ export default function DashboardLayoutBasic() {
         user: null, // ✅ Properly reset user in session when logged out
       }));
     }
-  }, [currentUser]);
+  }, [a.currentUser]);
 
   const appAuthentication = React.useMemo(() => {
     return {
       signIn: () => {
         navigate("/signin");
-        // setSession({
-        //   user: {
-        //     name: "Hardik Parikh",
-        //     email: "hardikparikh19@gmail.com",
-        //     image: "https://avatars.githubusercontent.com/u/141572034?v=4",
-        //   },
-        // });
       },
       signOut: () => {
         localStorage.removeItem("token"); // Remove token
         setSession(null); // Reset session
-        setCurrentUser(null); // Clear currentUser state
+        a.setCurrentUser(null); // Clear currentUser state
       },
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const router = useRouter();
@@ -300,15 +265,15 @@ export default function DashboardLayoutBasic() {
       case "/dashboard":
         return <DashboardPage />;
       case "/recruit":
-        return <RecruitPlayersPage />;
+        return <RecruitPlayersPage currentUser={a.currentUser} />;
       case "/events":
-        return <LocalEventsPage />;
+        return <LocalEventsPage currentUser={a.currentUser} />;
       case "/squad":
-        return <MySquadPage />;
+        return <MySquadPage currentUser={a.currentUser} />;
       case "/chat/team-chat":
-        return <TeamChatPage />;
+        return <TeamChatPage currentUser={a.currentUser} />;
       case "/chat/game-chat":
-        return <GameChatPage />;
+        return <GameChatPage currentUser={a.currentUser} />;
       default:
         router.navigate("/dashboard");
         return <DashboardPage />;
@@ -335,9 +300,9 @@ export default function DashboardLayoutBasic() {
           ),
         }}
         slotProps={{
-          toolbarAccount: currentUser
+          toolbarAccount: a.currentUser
             ? {
-                avatar: { src: currentUser.avatar || "" }, // Show avatar if logged in
+                avatar: { src: a.currentUser.avatar || "" }, // Show avatar if logged in
                 slotProps: {
                   popover: { open: false, sx: { display: "block" } },
                   signOutButton: { sx: { display: "block" } },

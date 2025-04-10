@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+/* eslint-disable react/prop-types */
+import { useState, useRef, useEffect, useContext } from "react";
 import io from "socket.io-client";
 import axios from "axios";
 import {
@@ -20,6 +21,7 @@ import {
 import { Send as SendIcon } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
 import FiberManualRecord from "@mui/icons-material/FiberManualRecord";
+import context from "../context/context";
 
 const API_BASE_URL = "http://localhost:8000/api/v1";
 const socket = io("http://localhost:8000", { transports: ["websocket"] });
@@ -42,13 +44,12 @@ const InputArea = styled(Box)(({ theme }) => ({
   borderTop: `1px solid ${theme.palette.divider}`,
 }));
 
-const TeamChatPage = () => {
+const TeamChatPage = ({ currentUser }) => {
+  const a = useContext(context);
   const [currentTeam, setCurrentTeam] = useState("");
-  const [teams, setTeams] = useState([]);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
-  const [currentUser, setCurrentUser] = useState({});
   const messageEndRef = useRef(null);
 
   // Setup socket listeners only once on mount
@@ -72,35 +73,6 @@ const TeamChatPage = () => {
       socket.off("updateOnlineUsers", handleOnlineUsers);
     };
   }, []);
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const response = await axios.get(`${API_BASE_URL}/users/me`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-        const userData = response?.data?.data?.data;
-        const newUser = {
-          id: userData._id,
-          name: userData.name,
-        };
-        setTeams(userData.team);
-
-        // Update state only if the user has changed
-        setCurrentUser((prevUser) =>
-          JSON.stringify(prevUser) !== JSON.stringify(newUser)
-            ? newUser
-            : prevUser
-        );
-      } catch (error) {
-        console.error("Error fetching user", error);
-      }
-    };
-    fetchUser();
-  }, []);
-
   useEffect(() => {
     if (currentTeam) {
       // Optionally notify the server about leaving previous room (if applicable)
@@ -157,7 +129,7 @@ const TeamChatPage = () => {
                 <MenuItem value="" disabled>
                   Select a team
                 </MenuItem>
-                {teams.map((team) => (
+                {a.teams.map((team) => (
                   <MenuItem key={team._id} value={team._id}>
                     {team.name}
                   </MenuItem>
@@ -193,7 +165,7 @@ const TeamChatPage = () => {
         <ChatContainer>
           <Box sx={{ p: 2.5, borderBottom: 1, borderColor: "divider" }}>
             <Typography variant="h6">
-              {teams.find((team) => team._id === currentTeam)?.name ||
+              {a.teams.find((team) => team._id === currentTeam)?.name ||
                 "Select a team to start chatting!"}
             </Typography>
           </Box>
