@@ -37,6 +37,29 @@ exports.resizeEventImages = catchAsync(async (req, res, next) => {
   next();
 });
 
+exports.addMemberToEvent = catchAsync(async (req, res, next) => {
+  const { gameId, memberId } = req.body;
+
+  // Update the team document by adding the member (using $addToSet to avoid duplicates)
+  const team = await Event.findByIdAndUpdate(
+    gameId,
+    { $addToSet: { members: memberId } },
+    { new: true, runValidators: true }
+  );
+
+  if (!team) {
+    return next(new AppError("No team found with that ID", 404));
+  }
+
+  // Update the user document by adding the team ID to the user's team array
+  await User.findByIdAndUpdate(memberId, { $addToSet: { team: team._id } });
+
+  res.status(200).json({
+    status: "success",
+    data: { team },
+  });
+});
+
 exports.getAllEvents = factory.getAll(Event);
 exports.getEvent = factory.getOne(Event);
 exports.createEvent = factory.createOne(Event);

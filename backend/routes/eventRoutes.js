@@ -29,4 +29,8 @@ router
     eventController.deleteEvent
   );
 
+router
+  .route("/add-member")
+  .patch(authController.protect, eventController.addMemberToEvent);
+
 module.exports = router;

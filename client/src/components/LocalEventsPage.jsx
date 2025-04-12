@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import { useState } from "react";
 import axios from "axios";
 import Card from "@mui/material/Card";
@@ -17,9 +18,9 @@ import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Box from "@mui/material/Box";
 import tournamentImage from "../assets/banner.jpg";
-import { display } from "@mui/system";
+// import { display } from "@mui/system";
 
-export default function LocalEventsPage() {
+export default function LocalEventsPage({ currentUser }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState(0);
   const [snackbar, setSnackbar] = useState({
@@ -35,6 +36,7 @@ export default function LocalEventsPage() {
     price: "",
     description: "",
     imageCover: "",
+    createdBy: currentUser.id,
   });
 
   const handleClickOpen = () => setOpen(true);
@@ -48,9 +50,17 @@ export default function LocalEventsPage() {
   const handleSubmit = async () => {
     const token = localStorage.getItem("token");
     try {
-      await axios.post("http://localhost:8000/api/v1/events", eventDetails, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const updatedEventDetails = {
+        ...eventDetails,
+        createdBy: currentUser.id,
+      };
+      await axios.post(
+        "http://localhost:8000/api/v1/events",
+        updatedEventDetails,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setSnackbar({
         open: true,
         message: "Event created successfully!",
