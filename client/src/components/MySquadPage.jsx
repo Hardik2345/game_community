@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import {
   Box,
   Container,
@@ -23,17 +23,16 @@ import {
 } from "@mui/material";
 import axios from "axios";
 import Snackbar from "@mui/material/Snackbar";
+import context from "../context/context";
 
 export default function MySquadPage() {
+  const a = useContext(context);
   const [tabValue, setTabValue] = useState(0);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success",
   });
-
-  // Store all squads the user is a member of (created or joined)
-  const [squads, setSquads] = useState([]);
 
   // Store all pending invites for the user
   const [invites, setInvites] = useState([]);
@@ -46,37 +45,16 @@ export default function MySquadPage() {
 
   // State for Squad Detail Dialog and current user
   const [selectedSquad, setSelectedSquad] = useState(null);
-  const [currentUser, setCurrentUser] = useState(null);
 
   // Fetch current user, squads, and invites on component mount
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(
-          "http://localhost:8000/api/v1/users/me",
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        const userData = response?.data?.data?.data;
-        const newUser = {
-          id: userData._id,
-          name: userData.name,
-          avatar: userData.avatar || "",
-        };
-        setCurrentUser(newUser);
-        // Assuming the user's teams are stored in userData.team array
-        setSquads(userData.team || []);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      }
-    };
-
-    fetchUserData();
+    a.fetchUserData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Function to fetch invites
   const fetchInvites = async () => {
-    if (currentUser) {
+    if (a.currentUser) {
       try {
         const token = localStorage.getItem("token");
         const response = await axios.get(
@@ -94,10 +72,11 @@ export default function MySquadPage() {
     }
   };
 
-  // Initial fetch of invites when currentUser is available
+  // Initial fetch of invites when a.currentUser is available
   useEffect(() => {
     fetchInvites();
-  }, [currentUser]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [a.currentUser]);
 
   // Refresh invites function for the refresh button
   const refreshInvites = async () => {
@@ -136,7 +115,7 @@ export default function MySquadPage() {
         message: "Team created successfully!",
         severity: "success",
       });
-      setSquads((prevSquads) => [...prevSquads, newSquad]);
+      a.setSquads((prevSquads) => [...prevSquads, newSquad]);
       setNewSquadName("");
       setNewSquadTagline("");
       setNewSquadDescription("");
@@ -164,10 +143,10 @@ export default function MySquadPage() {
     if (typeof member === "object" && member.name) {
       return member;
     } else if (
-      currentUser &&
-      (member === currentUser.id || member === currentUser._id)
+      a.currentUser &&
+      (member === a.currentUser.id || member === a.currentUser._id)
     ) {
-      return currentUser;
+      return a.currentUser;
     }
     return { name: "Member", avatar: "" };
   };
@@ -206,19 +185,19 @@ export default function MySquadPage() {
         // 4. Create an updated team object with the current user added to members (if not already included)
         const updatedTeam = {
           ...teamToJoin,
-          members: teamToJoin.members.includes(currentUser.id)
+          members: teamToJoin.members.includes(a.currentUser.id)
             ? teamToJoin.members
-            : [...teamToJoin.members, currentUser],
+            : [...teamToJoin.members, a.currentUser],
         };
 
         // 5. Call the specialized PATCH endpoint to add the current user to the team.
         await axios.patch(
           "http://localhost:8000/api/v1/teams/add-member",
-          { teamId: teamToJoin._id, memberId: currentUser.id },
+          { teamId: teamToJoin._id, memberId: a.currentUser.id },
           { headers: { Authorization: `Bearer ${token}` } }
         );
         // 6. Immediately update the local squads state so the joined team appears in the "Joined Squads" tab.
-        setSquads((prevSquads) => {
+        a.setSquads((prevSquads) => {
           const teamExists = prevSquads.find(
             (team) => team._id === teamToJoin._id
           );
@@ -292,12 +271,12 @@ export default function MySquadPage() {
     minHeight: "250px",
   };
 
-  // Derived squads based on createdBy field once currentUser is loaded
-  const createdSquads = currentUser
-    ? squads.filter((squad) => squad.createdBy === currentUser.id)
+  // Derived squads based on createdBy field once a.currentUser is loaded
+  const createdSquads = a.currentUser
+    ? a.squads.filter((squad) => squad.createdBy === a.currentUser.id)
     : [];
-  const joinedSquads = currentUser
-    ? squads.filter((squad) => squad.createdBy !== currentUser.id)
+  const joinedSquads = a.currentUser
+    ? a.squads.filter((squad) => squad.createdBy !== a.currentUser.id)
     : [];
 
   return (
