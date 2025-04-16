@@ -88,6 +88,36 @@ export default function LocalEventsPage({ currentUser }) {
     }
   };
 
+  const joinNow = async (id, member) => {
+    const token = localStorage.getItem("token");
+    try {
+      const members = {
+        gameId: id,
+        members: member,
+      };
+      await axios.patch(
+        "http://localhost:8000/api/v1/events/add-member",
+        members,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setSnackbar({
+        open: true,
+        message: "Member added successfully!",
+        severity: "success",
+      });
+      setOpen(false);
+    } catch (error) {
+      console.error("Error adding member to the event:", error);
+      setSnackbar({
+        open: true,
+        message: "Failed to add member to the event",
+        severity: "error",
+      });
+    }
+  };
+
   return (
     <>
       {/* Tabs */}
@@ -179,7 +209,11 @@ export default function LocalEventsPage({ currentUser }) {
                         </Typography>
                       </CardContent>
                       <CardActions>
-                        <Button variant="outlined" size="small">
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => joinNow(game._id, currentUser.id)}
+                        >
                           Join Now
                         </Button>
                       </CardActions>
