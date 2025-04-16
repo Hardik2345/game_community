@@ -29,11 +29,16 @@ const State = (props) => {
   };
   const fetchUser = async () => {
     try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setCurrentUser(null);
+        throw new Error("No token present");
+      }
       const response = await axios.get(
         `http://localhost:8000/api/v1/users/me`,
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${token}`,
           },
         }
       );
