@@ -155,7 +155,7 @@ export default function LocalEventsPage({ currentUser }) {
                 <CardContent sx={{ backgroundColor: "transparent" }}>
                   <Typography
                     gutterBottom
-                    variant="h1"
+                    variant="h4"
                     sx={{ fontSize: "30px", color: "#ff6600" }}
                   >
                     Create Tournament!
