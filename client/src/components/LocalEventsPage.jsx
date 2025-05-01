@@ -18,15 +18,17 @@ import MuiAlert from "@mui/material/Alert";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Box from "@mui/material/Box";
-import ReactVirtualizedTable from "./ReactVirtualizedTable";
+// import ReactVirtualizedTable from "./ReactVirtualizedTable";
 import tournamentImage from "../assets/banner.jpg";
 import CardActionArea from "@mui/material/CardActionArea";
-import ArrowLeftIcon from "@mui/icons-material/ArrowLeft";
+// import ArrowLeftIcon from "@mui/icons-material/ArrowLeft";
 import context from "../context/context";
 
 export default function LocalEventsPage({ currentUser }) {
   const a = useContext(context);
-  const [open, setOpen] = useState(false);
+  const [openCreate, setOpenCreate] = useState(false);
+  const [openPay, setOpenPay] = useState(false);
+  const [selectedGame, setSelectedGame] = useState(null);
   const [tab, setTab] = useState(0);
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -43,44 +45,46 @@ export default function LocalEventsPage({ currentUser }) {
     imageCover: "",
     createdBy: currentUser.id,
   });
-  // track selected game for detailed view
-  const [cardSelected, setCardSelected] = useState(false);
-  const [selectedGame, setSelectedGame] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
 
   useEffect(() => {
     a.fetchGames();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
     a.fetchGamesForUser();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleClickOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
+  const handleCreateOpen = () => setOpenCreate(true);
+  const handleCreateClose = () => setOpenCreate(false);
   const handleSnackbarClose = () => setSnackbar({ ...snackbar, open: false });
   const handleChange = (e) =>
     setEventDetails({ ...eventDetails, [e.target.name]: e.target.value });
   const handleTabChange = (e, newValue) => {
     setTab(newValue);
-    setCardSelected(false);
     setSelectedGame(null);
   };
 
   const handleSubmit = async () => {
     const token = localStorage.getItem("token");
+    const formData = new FormData();
+    Object.entries(eventDetails).forEach(([key, value]) =>
+      formData.append(key, value)
+    );
+    if (imageFile) formData.append("imageCover", imageFile);
     try {
-      await axios.post(
-        "http://localhost:8000/api/v1/events",
-        { ...eventDetails, createdBy: currentUser.id },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axios.post("http://localhost:8000/api/v1/events", formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
       setSnackbar({
         open: true,
         message: "Event created successfully!",
         severity: "success",
       });
-      setOpen(false);
+      setOpenCreate(false);
     } catch (error) {
       console.error(error);
       setSnackbar({
@@ -91,27 +95,44 @@ export default function LocalEventsPage({ currentUser }) {
     }
   };
 
-  const joinNow = async (id, member) => {
-    const token = localStorage.getItem("token");
+  const handleJoinClick = (game) => {
+    setSelectedGame(game);
+    setOpenPay(true);
+  };
+  const handlePayClose = () => {
+    setOpenPay(false);
+    setSelectedGame(null);
+  };
+  const handleProceedToPayment = async () => {
     try {
-      await axios.patch(
-        "http://localhost:8000/api/v1/events/add-member",
-        { gameId: id, members: member },
-        { headers: { Authorization: `Bearer ${token}` } }
+      // Call your express route
+      const { data } = await axios.get(
+        `http://localhost:8000/api/v1/events/checkout-session/${selectedGame._id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
       );
+
+      // Redirect the browser to Stripe Checkout
+      window.location.href = data.checkoutUrl;
+    } catch (err) {
+      console.error("Stripe checkout init failed", err);
       setSnackbar({
         open: true,
-        message: "Member added successfully!",
-        severity: "success",
-      });
-    } catch (error) {
-      console.error(error);
-      setSnackbar({
-        open: true,
-        message: "Failed to add member to the event",
+        message: "Unable to start payment. Please try again.",
         severity: "error",
       });
     }
+  };
+
+  const dialogPaperSx = { p: 3, borderRadius: 3 };
+  const contentSx = {
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+    minWidth: 360,
   };
 
   return (
@@ -143,12 +164,10 @@ export default function LocalEventsPage({ currentUser }) {
                   backgroundImage: `url(${tournamentImage})`,
                   backgroundSize: "cover",
                   backgroundPosition: "center",
-                  color: "black",
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "space-between",
                   borderRadius: "10px",
-                  overflow: "hidden",
                   position: "relative",
                 }}
               >
@@ -173,7 +192,7 @@ export default function LocalEventsPage({ currentUser }) {
                       bottom: 10,
                       left: 15,
                     }}
-                    onClick={handleClickOpen}
+                    onClick={handleCreateOpen}
                   >
                     Get Started
                   </Button>
@@ -181,139 +200,102 @@ export default function LocalEventsPage({ currentUser }) {
               </Card>
             </Grid>
           </Grid>
+
           <Typography variant="h5" sx={{ mt: 2, mb: 2 }}>
             Local Games
           </Typography>
-          <Grid item xs={12}>
-            <Grid container spacing={2}>
-              {a.games.length === 0 ? (
-                <Typography ml={2}>No local games available.</Typography>
-              ) : (
-                a.games.map((game, index) => (
-                  <Grid item xs={12} sm={4} key={index}>
-                    <Card
-                      sx={{
-                        borderRadius: "16px",
-                        height: 300,
-                        overflow: "hidden",
-                        position: "relative",
+          <Grid container spacing={2}>
+            {a.games.length === 0 ? (
+              <Typography ml={2}>No local games available.</Typography>
+            ) : (
+              a.games.map((game, i) => (
+                <Grid item xs={12} sm={4} key={i}>
+                  <Card
+                    sx={{
+                      borderRadius: "16px",
+                      height: 300,
+                      overflow: "hidden",
+                      position: "relative",
+                    }}
+                  >
+                    <CardMedia
+                      component="img"
+                      height="140"
+                      image={`http://localhost:8000/img/events/${game.imageCover}`}
+                      alt="Game cover"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src =
+                          "/default-image-icon-missing-picture-page-vector-40546530.jpg";
                       }}
-                    >
-                      <CardMedia
-                        component="img"
-                        height="140"
-                        image={game.imageCover}
-                        alt="Game cover"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src =
-                            "/default-image-icon-missing-picture-page-vector-40546530.jpg";
+                    />
+                    <CardContent>
+                      <Typography variant="h6">{game.name}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {game.description}
+                      </Typography>
+                    </CardContent>
+                    <CardActions>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        sx={{
+                          position: "absolute",
+                          bottom: 12,
+                          left: "50%",
+                          transform: "translateX(-50%)",
                         }}
-                      />
-                      <CardContent>
-                        <Typography variant="h6">{game.name}</Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {game.description}
-                        </Typography>
-                      </CardContent>
-                      <CardActions>
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          sx={{ position: "absolute", bottom: 10 }}
-                          onClick={() => joinNow(game._id, currentUser.id)}
-                        >
-                          Join Now
-                        </Button>
-                      </CardActions>
-                    </Card>
-                  </Grid>
-                ))
-              )}
-            </Grid>
+                        onClick={() => handleJoinClick(game)}
+                      >
+                        Join Now
+                      </Button>
+                    </CardActions>
+                  </Card>
+                </Grid>
+              ))
+            )}
           </Grid>
         </>
       )}
 
       {/* Active Tournaments Tab */}
       {tab === 1 && (
-        <Box
-          sx={{
-            width: "100%",
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-          }}
-        >
-          {!cardSelected ? (
-            a.userGames && a.userGames.length > 0 ? (
-              a.userGames.map((game) => (
-                <Card
-                  key={game._id}
-                  sx={{
-                    height: 200,
-                    backgroundPosition: "center",
-                    color: "black",
-                    justifyContent: "space-between",
-                    borderRadius: "10px",
-                    overflow: "hidden",
-                    position: "relative",
-                  }}
-                >
-                  <CardActionArea
-                    onClick={() => {
-                      setCardSelected(true);
-                      setSelectedGame(game);
-                    }}
-                    sx={{
-                      height: "100%",
-                      "&[data-active]": {
-                        backgroundColor: "action.selected",
-                        "&:hover": {
-                          backgroundColor: "action.selectedHover",
-                        },
-                      },
-                    }}
-                  >
-                    <CardContent sx={{ height: "100%" }}>
-                      <Typography
-                        variant="h5"
-                        component="div"
-                        sx={{ color: "white" }}
-                      >
-                        {game.name}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {game.description}
-                      </Typography>
-                    </CardContent>
-                  </CardActionArea>
-                </Card>
-              ))
-            ) : (
-              <Typography ml={2}>No active tournaments joined.</Typography>
-            )
-          ) : (
-            <>
-              <Button
-                onClick={() => {
-                  setCardSelected(false);
-                  setSelectedGame(null);
-                }}
-                sx={{ minWidth: 10, padding: 0, alignSelf: "flex-start" }}
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          {a.userGames && a.userGames.length > 0 ? (
+            a.userGames.map((game) => (
+              <Card
+                key={game._id}
+                onClick={() => handleJoinClick(game)}
+                sx={{ height: 200, borderRadius: "10px", position: "relative" }}
               >
-                <ArrowLeftIcon sx={{ width: 30, height: 30 }} />
-              </Button>
-              <ReactVirtualizedTable game={selectedGame} />
-            </>
+                <CardActionArea sx={{ height: "100%" }}>
+                  <CardContent sx={{ height: "100%" }}>
+                    <Typography variant="h5">{game.name}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {game.description}
+                    </Typography>
+                  </CardContent>
+                </CardActionArea>
+              </Card>
+            ))
+          ) : (
+            <Typography ml={2}>No active tournaments joined.</Typography>
           )}
         </Box>
       )}
 
-      {/* Dialog for Creating Event */}
-      <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>Enter Event Details</DialogTitle>
-        <DialogContent>
+      {/* Create Event Dialog */}
+      <Dialog
+        open={openCreate}
+        onClose={handleCreateClose}
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{ sx: dialogPaperSx }}
+      >
+        <DialogTitle sx={{ textAlign: "center" }}>
+          Enter Event Details
+        </DialogTitle>
+        <DialogContent sx={contentSx}>
           <TextField
             label="Event Name"
             name="name"
@@ -358,23 +340,54 @@ export default function LocalEventsPage({ currentUser }) {
             margin="dense"
             onChange={handleChange}
           />
-          <TextField
-            label="Image Cover URL"
-            name="imageCover"
-            fullWidth
-            margin="dense"
-            onChange={handleChange}
-          />
+          <Button variant="outlined" component="label" sx={{ mt: 1 }}>
+            Upload Image
+            <input
+              accept="image/*"
+              type="file"
+              hidden
+              onChange={(e) => setImageFile(e.target.files[0])}
+            />
+          </Button>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
+        <DialogActions sx={{ justifyContent: "center", pb: 2 }}>
+          <Button onClick={handleCreateClose}>Cancel</Button>
           <Button variant="contained" onClick={handleSubmit}>
             Submit
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar for Alerts */}
+      {/* Payment Dialog */}
+      <Dialog
+        open={openPay}
+        onClose={handlePayClose}
+        fullWidth
+        maxWidth="xs"
+        PaperProps={{ sx: dialogPaperSx }}
+      >
+        <DialogTitle sx={{ textAlign: "center" }}>Confirm Payment</DialogTitle>
+        <DialogContent sx={{ ...contentSx, alignItems: "center" }}>
+          <Typography sx={{ fontSize: "1.2rem", fontWeight: 500 }}>
+            Price:
+          </Typography>
+          <Typography sx={{ fontSize: "1.5rem", mb: 1 }}>
+            {selectedGame?.price} USD
+          </Typography>
+          <Button
+            variant="contained"
+            fullWidth
+            onClick={handleProceedToPayment}
+          >
+            Proceed to Payment
+          </Button>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: "center", pt: 0 }}>
+          <Button onClick={handlePayClose}>Cancel</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}

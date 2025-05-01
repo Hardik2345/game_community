@@ -207,7 +207,7 @@ export default function DashboardPage() {
           </Paper>
         </Grid>
 
-        <Grid item xs={6} sx={{ height: "400px" }}>
+        <Grid item xs={12} sx={{ height: "400px" }}>
           <Paper
             sx={{
               p: 3,
