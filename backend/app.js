@@ -21,6 +21,7 @@ const eventRouter = require("./routes/eventRoutes");
 const chatRouter = require("./routes/chatRoutes");
 const teamRouter = require("./routes/teamRoutes");
 const inviteRouter = require("./routes/inviteRoutes");
+const matchRouter = require("./routes/matchRoutes");
 const AppError = require("./utils/appError");
 const globalErrorHandler = require("./controllers/errorController");
 
@@ -98,6 +99,7 @@ app.use("/api/v1/teams", teamRouter);
 app.use("/api/v1/invites", inviteRouter);
 app.use("/api/v1/matches", valorantRoutes);
 app.use("/api/v1/gv", gvRoutes);
+app.use("/api/v1/dashboard", matchRouter);
 
 cron.schedule("0 * * * *", async () => {
   console.log("⏰ Running hourly GV update...");

@@ -2,18 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { Line, Bar, Pie } from "react-chartjs-2";
 import { useTheme } from "@mui/material/styles";
-import {
-  Paper,
-  Box,
-  Typography,
-  Grid,
-  // Table,
-  // TableBody,
-  // TableCell,
-  // TableContainer,
-  // TableHead,
-  // TableRow,
-} from "@mui/material";
+import { Paper, Box, Typography, Grid } from "@mui/material";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -47,9 +36,16 @@ export default function DashboardPage() {
     const fetchMatches = async () => {
       try {
         const response = await axios.get(
-          "http://localhost:8000/api/v1/matches/valorant-matches"
+          "http://localhost:8000/api/v1/dashboard/cached",
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
         );
-        setMatchData(response.data);
+
+        // unpack cached endpoint’s { status, data } shape
+        setMatchData(response.data.data);
       } catch (error) {
         console.error("Failed to fetch match data:", error);
       }
@@ -77,29 +73,19 @@ export default function DashboardPage() {
           boxWidth: 10,
           padding: 8,
           color: theme.palette.text.primary,
-          font: {
-            size: 11,
-          },
+          font: { size: 11 },
         },
       },
-      title: {
-        display: false,
-      },
+      title: { display: false },
     },
     scales: {
       x: {
         grid: { display: false },
-        ticks: {
-          color: theme.palette.text.secondary,
-          font: { size: 11 },
-        },
+        ticks: { color: theme.palette.text.secondary, font: { size: 11 } },
       },
       y: {
         grid: { color: theme.palette.divider },
-        ticks: {
-          color: theme.palette.text.secondary,
-          font: { size: 11 },
-        },
+        ticks: { color: theme.palette.text.secondary, font: { size: 11 } },
       },
     },
   };
@@ -114,28 +100,18 @@ export default function DashboardPage() {
           boxWidth: 10,
           padding: 8,
           color: theme.palette.text.primary,
-          font: {
-            size: 11,
-          },
+          font: { size: 11 },
         },
       },
-      title: {
-        display: false,
-      },
+      title: { display: false },
     },
   };
 
   // Prepare KDA chart data
-  const kdaLabels = matchData.map((match, i) => `Match ${i + 1}`);
-  const kills = matchData.map((match) =>
-    parseInt(match.kda?.split(" / ")[0] || 0)
-  );
-  const deaths = matchData.map((match) =>
-    parseInt(match.kda?.split(" / ")[1] || 0)
-  );
-  const assists = matchData.map((match) =>
-    parseInt(match.kda?.split(" / ")[2] || 0)
-  );
+  const kdaLabels = matchData.map((_, i) => `Match ${i + 1}`);
+  const kills = matchData.map((m) => parseInt(m.kda?.split(" / ")[0] || 0));
+  const deaths = matchData.map((m) => parseInt(m.kda?.split(" / ")[1] || 0));
+  const assists = matchData.map((m) => parseInt(m.kda?.split(" / ")[2] || 0));
 
   const kdaData = {
     labels: kdaLabels,
@@ -165,8 +141,6 @@ export default function DashboardPage() {
       },
     ],
   };
-
-  // const leaderboardData = []; // Leave your static leaderboard or build one later
 
   const prizePoolData = {
     labels: ["1st", "2nd", "3rd", "Others"],
