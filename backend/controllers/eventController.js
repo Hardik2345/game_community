@@ -1,3 +1,4 @@
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const multer = require("multer");
 const sharp = require("sharp");
 const catchAsync = require("./../utils/catchAsync");
@@ -28,17 +29,16 @@ console.log("uploadEventImages middleware triggered");
 
 exports.resizeEventImages = catchAsync(async (req, res, next) => {
   if (!req.files || !req.files.imageCover) return next();
-  console.log("req.files:", req.files);
-  console.log("req.body:", req.body);
   if (!req.files.imageCover) return next();
 
   // 1) Cover image
-  req.body.imageCover = `tour-${req.params.id}-${Date.now()}-cover.jpeg`;
+  const filename = `event-${Date.now()}-cover.jpeg`;
+  req.body.imageCover = filename;
   await sharp(req.files.imageCover[0].buffer)
     .resize(2000, 1333)
     .toFormat("jpeg")
     .jpeg({ quality: 90 })
-    .toFile(`public/img/tours/${req.body.imageCover}`);
+    .toFile(`public/img/events/${req.body.imageCover}`);
 
   next();
 });
@@ -77,6 +77,45 @@ exports.addMemberToEvent = catchAsync(async (req, res, next) => {
   res.status(200).json({
     status: "success",
     data: { event: team },
+  });
+});
+
+exports.getCheckoutSession = catchAsync(async (req, res, next) => {
+  // 1) Fetch the event
+  const event = await Event.findById(req.params.eventId);
+  if (!event) {
+    return next(new AppError("No event found with that ID", 404));
+  }
+
+  // 2) Create Stripe Checkout session
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ["card"],
+    success_url: `${req.protocol}://${req.get("host")}/`,
+    cancel_url: `${req.protocol}://${req.get("host")}/`,
+    client_reference_id: req.params.eventId,
+    line_items: [
+      {
+        price_data: {
+          currency: "usd",
+          unit_amount: event.price * 100, // Stripe expects cents
+          product_data: {
+            name: event.name,
+            description: event.description,
+          },
+        },
+        quantity: 1,
+      },
+    ],
+    mode: "payment", // ensure you set mode
+    success_url: `http://localhost:5173/events`,
+    cancel_url: `http://localhost:5173/events`,
+  });
+
+  // 3) Return session URL
+  res.status(200).json({
+    status: "success",
+    sessionId: session.id,
+    checkoutUrl: session.url, // v9+ provides `.url`
   });
 });
 exports.getAllEvents = factory.getAll(Event);

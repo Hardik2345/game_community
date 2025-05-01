@@ -41,11 +41,6 @@ exports.createOne = (Model) =>
   catchAsync(async (req, res, next) => {
     const doc = await Model.create(req.body);
 
-    if (Model.modelName === "Event") {
-      const x = extract.fetchMatchData();
-      console.log(x);
-    }
-
     res.status(201).json({
       status: "success",
       data: {

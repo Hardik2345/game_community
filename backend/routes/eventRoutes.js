@@ -10,6 +10,8 @@ router
   .post(
     authController.protect,
     authController.restrictTo("admin", "leader", "user"),
+    eventController.uploadEventImages,
+    eventController.resizeEventImages,
     eventController.createEvent
   );
 
@@ -32,5 +34,11 @@ router
     authController.restrictTo("admin", "leader", "user"),
     eventController.deleteEvent
   );
+
+router.get(
+  "/checkout-session/:eventId",
+  authController.protect,
+  eventController.getCheckoutSession
+);
 
 module.exports = router;
