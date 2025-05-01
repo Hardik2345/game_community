@@ -49,11 +49,11 @@ export default function LocalEventsPage({ currentUser }) {
 
   useEffect(() => {
     a.fetchGames();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
     a.fetchGamesForUser();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleClickOpen = () => setOpen(true);
