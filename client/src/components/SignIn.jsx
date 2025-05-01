@@ -12,43 +12,57 @@ import {
   ThemeProvider,
   createTheme,
   CssBaseline,
+  Divider,
 } from "@mui/material";
 
-// Define a dark theme
+// Neon-cyberpunk gamer theme
 const darkTheme = createTheme({
   palette: {
     mode: "dark",
-    primary: {
-      main: "#90caf9",
-    },
-    background: {
-      default: "#121212", // Set full background color
-      paper: "#1e1e1e",
-    },
-    text: {
-      primary: "#ffffff",
-    },
+    primary: { main: "#00e5ff" },
+    background: { default: "#0f0f0f", paper: "#1a1a1a" },
+    text: { primary: "#ffffff", secondary: "#aaaaaa" },
+  },
+  typography: {
+    fontFamily: `'Orbitron', 'Roboto', sans-serif`,
+    h4: { fontWeight: 700 },
   },
 });
 
-export default function SignIn() {
+export default function Auth() {
   const [tab, setTab] = useState(0);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   const handleLogin = async () => {
     try {
-      const response = await fetch("http://localhost:8000/api/v1/users/login", {
+      const res = await fetch("http://localhost:8000/api/v1/users/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Login failed");
+      localStorage.setItem("token", data.token);
+      navigate("/");
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Login failed");
-
+  const handleSignUp = async () => {
+    try {
+      const res = await fetch("http://localhost:8000/api/v1/users/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password, passwordConfirm }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Signup failed");
       localStorage.setItem("token", data.token);
       navigate("/");
     } catch (err) {
@@ -58,73 +72,150 @@ export default function SignIn() {
 
   return (
     <ThemeProvider theme={darkTheme}>
-      {/* Apply global dark mode styles */}
       <CssBaseline />
-
       <Box
         sx={{
           minHeight: "100vh",
-          width: "100%",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "background.default", // Apply full dark background
-          color: "text.primary",
+          p: 2,
+          bgcolor: "background.default",
         }}
       >
         <Card
           sx={{
-            maxWidth: 400,
+            maxWidth: 450,
             width: "100%",
-            p: 2,
+            borderRadius: 3,
+            boxShadow: 5,
             bgcolor: "background.paper",
+            px: 3,
+            py: 4,
           }}
         >
           <CardContent>
+            <Typography
+              variant="h4"
+              align="center"
+              gutterBottom
+              sx={{ color: "#00e5ff" }}
+            >
+              SquadronX
+            </Typography>
+            <Typography
+              variant="subtitle1"
+              align="center"
+              sx={{ mb: 2, color: "text.secondary" }}
+            >
+              Connect. Squad Up. Dominate.
+            </Typography>
             <Tabs
               value={tab}
               onChange={(_, newValue) => setTab(newValue)}
               centered
+              textColor="primary"
+              indicatorColor="primary"
+              sx={{ mb: 3 }}
             >
               <Tab label="Login" />
-              <Tab label="Sign Up" onClick={() => navigate("/signup")} />
+              <Tab label="Sign Up" />
             </Tabs>
-            <Box sx={{ mt: 2 }}>
-              <TextField
-                fullWidth
-                label="Email"
-                variant="outlined"
-                margin="normal"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                InputLabelProps={{ style: { color: "#ffffff" } }}
-                InputProps={{
-                  style: { color: "#ffffff", backgroundColor: "#333" },
-                }}
-              />
-              <TextField
-                fullWidth
-                label="Password"
-                type="password"
-                variant="outlined"
-                margin="normal"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                InputLabelProps={{ style: { color: "#ffffff" } }}
-                InputProps={{
-                  style: { color: "#ffffff", backgroundColor: "#333" },
-                }}
-              />
-              {error && <Typography color="error">{error}</Typography>}
-              <Button
-                variant="contained"
-                fullWidth
-                sx={{ mt: 2 }}
-                onClick={handleLogin}
-              >
-                Sign In
-              </Button>
-            </Box>
+
+            {tab === 0 ? (
+              <>
+                <TextField
+                  fullWidth
+                  label="Email"
+                  variant="outlined"
+                  margin="normal"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  InputProps={{ style: { backgroundColor: "#222" } }}
+                />
+                <TextField
+                  fullWidth
+                  label="Password"
+                  type="password"
+                  variant="outlined"
+                  margin="normal"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  InputProps={{ style: { backgroundColor: "#222" } }}
+                />
+                {error && <Typography color="error">{error}</Typography>}
+                <Button
+                  variant="contained"
+                  fullWidth
+                  sx={{
+                    mt: 3,
+                    bgcolor: "#00e5ff",
+                    color: "#000",
+                    fontWeight: "bold",
+                    "&:hover": { bgcolor: "#00bcd4" },
+                  }}
+                  onClick={handleLogin}
+                >
+                  Sign In
+                </Button>
+              </>
+            ) : (
+              <>
+                <TextField
+                  fullWidth
+                  label="Name"
+                  variant="outlined"
+                  margin="normal"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  InputProps={{ style: { backgroundColor: "#222" } }}
+                />
+                <TextField
+                  fullWidth
+                  label="Email"
+                  variant="outlined"
+                  margin="normal"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  InputProps={{ style: { backgroundColor: "#222" } }}
+                />
+                <TextField
+                  fullWidth
+                  label="Password"
+                  type="password"
+                  variant="outlined"
+                  margin="normal"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  InputProps={{ style: { backgroundColor: "#222" } }}
+                />
+                <TextField
+                  fullWidth
+                  label="Confirm Password"
+                  type="password"
+                  variant="outlined"
+                  margin="normal"
+                  value={passwordConfirm}
+                  onChange={(e) => setPasswordConfirm(e.target.value)}
+                  InputProps={{ style: { backgroundColor: "#222" } }}
+                />
+                {error && <Typography color="error">{error}</Typography>}
+                <Button
+                  variant="contained"
+                  fullWidth
+                  sx={{
+                    mt: 3,
+                    bgcolor: "#00e5ff",
+                    color: "#000",
+                    fontWeight: "bold",
+                    "&:hover": { bgcolor: "#00bcd4" },
+                  }}
+                  onClick={handleSignUp}
+                >
+                  Sign Up
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
       </Box>

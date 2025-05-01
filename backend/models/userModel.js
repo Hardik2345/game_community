@@ -42,6 +42,7 @@ const userSchema = new mongoose.Schema({
     },
   },
   team: [{ type: mongoose.Schema.Types.ObjectId, ref: "Team" }],
+  event: [{ type: mongoose.Schema.Types.ObjectId, ref: "Event" }],
   passwordChangedAt: Date,
   passwordResetToken: String,
   passwordResetExpires: Date,
@@ -49,6 +50,14 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
     select: false,
+  },
+  riotTag: {
+    type: String,
+    required: [true, "Please provide a riot tag"],
+  },
+  riotUsername: {
+    type: String,
+    required: [true, "Please provide a riot username"],
   },
 });
 

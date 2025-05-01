@@ -20,7 +20,9 @@ module.exports = function chatSocket(io) {
         }
       }
     }
-    const users = await User.find({ _id: { $in: userIds } }).select("name");
+    const users = await User.find({ _id: { $in: userIds } }).select(
+      "name photo"
+    );
     io.to(room).emit("updateOnlineUsers", users);
   }
 
@@ -106,7 +108,7 @@ module.exports = function chatSocket(io) {
       onlineRecruitUsers[userId] = socket.id;
       socket.userId = userId;
       socket.join("recruitPlayers");
-      const allUsers = await User.find({}).select("name _id");
+      const allUsers = await User.find({}).select("name _id photo");
       const onlineUserIds = Object.keys(onlineRecruitUsers);
       io.to("recruitPlayers").emit("updateOnlineUsers", {
         allUsers,

@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import axios from "axios";
 import { Line, Bar, Pie } from "react-chartjs-2";
 import { useTheme } from "@mui/material/styles";
 import {
@@ -5,12 +7,12 @@ import {
   Box,
   Typography,
   Grid,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
+  // Table,
+  // TableBody,
+  // TableCell,
+  // TableContainer,
+  // TableHead,
+  // TableRow,
 } from "@mui/material";
 import {
   Chart as ChartJS,
@@ -39,8 +41,23 @@ ChartJS.register(
 
 export default function DashboardPage() {
   const theme = useTheme();
+  const [matchData, setMatchData] = useState([]);
 
-  // Chart colors using theme palette
+  useEffect(() => {
+    const fetchMatches = async () => {
+      try {
+        const response = await axios.get(
+          "http://localhost:8000/api/v1/matches/valorant-matches"
+        );
+        setMatchData(response.data);
+      } catch (error) {
+        console.error("Failed to fetch match data:", error);
+      }
+    };
+
+    fetchMatches();
+  }, []);
+
   const chartColors = {
     primary: theme.palette.primary.main,
     secondary: theme.palette.secondary.main,
@@ -71,25 +88,17 @@ export default function DashboardPage() {
     },
     scales: {
       x: {
-        grid: {
-          display: false,
-        },
+        grid: { display: false },
         ticks: {
           color: theme.palette.text.secondary,
-          font: {
-            size: 11,
-          },
+          font: { size: 11 },
         },
       },
       y: {
-        grid: {
-          color: theme.palette.divider,
-        },
+        grid: { color: theme.palette.divider },
         ticks: {
           color: theme.palette.text.secondary,
-          font: {
-            size: 11,
-          },
+          font: { size: 11 },
         },
       },
     },
@@ -116,12 +125,39 @@ export default function DashboardPage() {
     },
   };
 
+  // Prepare KDA chart data
+  const kdaLabels = matchData.map((match, i) => `Match ${i + 1}`);
+  const kills = matchData.map((match) =>
+    parseInt(match.kda?.split(" / ")[0] || 0)
+  );
+  const deaths = matchData.map((match) =>
+    parseInt(match.kda?.split(" / ")[1] || 0)
+  );
+  const assists = matchData.map((match) =>
+    parseInt(match.kda?.split(" / ")[2] || 0)
+  );
+
+  const kdaData = {
+    labels: kdaLabels,
+    datasets: [
+      { label: "Kills", data: kills, backgroundColor: chartColors.success },
+      { label: "Deaths", data: deaths, backgroundColor: chartColors.error },
+      { label: "Assists", data: assists, backgroundColor: chartColors.warning },
+    ],
+  };
+
+  // Prepare KDA Ratio chart
+  const kdaRatios = matchData.map((m) => {
+    const [k, d, a] = m.kda?.split(" / ").map(Number) || [0, 0, 0];
+    return d ? ((k + a) / d).toFixed(2) : 0;
+  });
+
   const performanceData = {
-    labels: ["Week 1", "Week 2", "Week 3", "Week 4", "Week 5", "Week 6"],
+    labels: kdaLabels,
     datasets: [
       {
         label: "KDA Ratio",
-        data: [2.5, 3.2, 2.8, 3.5, 4.0, 3.8],
+        data: kdaRatios,
         borderColor: chartColors.primary,
         backgroundColor: chartColors.primary,
         tension: 0.3,
@@ -130,37 +166,7 @@ export default function DashboardPage() {
     ],
   };
 
-  const kdaData = {
-    labels: ["Match 1", "Match 2", "Match 3", "Match 4", "Match 5"],
-    datasets: [
-      {
-        label: "Kills",
-        data: [12, 15, 10, 14, 16],
-        backgroundColor: chartColors.success,
-      },
-      {
-        label: "Deaths",
-        data: [5, 4, 6, 3, 4],
-        backgroundColor: chartColors.error,
-      },
-      {
-        label: "Assists",
-        data: [8, 10, 7, 9, 11],
-        backgroundColor: chartColors.warning,
-      },
-    ],
-  };
-
-  const playerKDAData = {
-    labels: ["P1", "P2", "P3", "P4", "P5"],
-    datasets: [
-      {
-        label: "KDA Ratio",
-        data: [3.5, 2.8, 4.2, 3.1, 3.8],
-        backgroundColor: chartColors.secondary,
-      },
-    ],
-  };
+  // const leaderboardData = []; // Leave your static leaderboard or build one later
 
   const prizePoolData = {
     labels: ["1st", "2nd", "3rd", "Others"],
@@ -176,24 +182,6 @@ export default function DashboardPage() {
       },
     ],
   };
-
-  const leaderboardData = [
-    { rank: 1, name: "Team Alpha", points: 2500, winRate: "75%" },
-    { rank: 2, name: "Team Beta", points: 2350, winRate: "70%" },
-    { rank: 3, name: "Team Gamma", points: 2200, winRate: "65%" },
-    { rank: 4, name: "Team Delta", points: 2100, winRate: "62%" },
-    { rank: 5, name: "Team Epsilon", points: 2000, winRate: "60%" },
-    { rank: 6, name: "Team Zeta", points: 1950, winRate: "58%" },
-    { rank: 7, name: "Team Eta", points: 1900, winRate: "57%" },
-    { rank: 8, name: "Team Theta", points: 1850, winRate: "55%" },
-    { rank: 9, name: "Team Iota", points: 1800, winRate: "54%" },
-    { rank: 10, name: "Team Kappa", points: 1750, winRate: "53%" },
-    { rank: 11, name: "Team Lambda", points: 1700, winRate: "52%" },
-    { rank: 12, name: "Team Mu", points: 1650, winRate: "51%" },
-    { rank: 13, name: "Team Nu", points: 1600, winRate: "50%" },
-    { rank: 14, name: "Team Xi", points: 1550, winRate: "49%" },
-    { rank: 15, name: "Team Omicron", points: 1500, winRate: "48%" },
-  ];
 
   return (
     <Box
@@ -220,11 +208,7 @@ export default function DashboardPage() {
               Performance Trend
             </Typography>
             <Box sx={{ flex: 1, minHeight: 0 }}>
-              <Line
-                data={performanceData}
-                options={chartOptions}
-                style={{ width: "100%", height: "100%" }}
-              />
+              <Line data={performanceData} options={chartOptions} />
             </Box>
           </Paper>
         </Grid>
@@ -244,35 +228,7 @@ export default function DashboardPage() {
               KDA Breakdown
             </Typography>
             <Box sx={{ flex: 1, minHeight: 0 }}>
-              <Bar
-                data={kdaData}
-                options={chartOptions}
-                style={{ width: "100%", height: "100%" }}
-              />
-            </Box>
-          </Paper>
-        </Grid>
-
-        <Grid item xs={6} sx={{ height: "400px" }}>
-          <Paper
-            sx={{
-              p: 3,
-              height: "100%",
-              display: "flex",
-              flexDirection: "column",
-              borderRadius: 2,
-            }}
-            elevation={1}
-          >
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              Team KDA Comparison
-            </Typography>
-            <Box sx={{ flex: 1, minHeight: 0 }}>
-              <Bar
-                data={playerKDAData}
-                options={chartOptions}
-                style={{ width: "100%", height: "100%" }}
-              />
+              <Bar data={kdaData} options={chartOptions} />
             </Box>
           </Paper>
         </Grid>
@@ -292,53 +248,12 @@ export default function DashboardPage() {
               Prize Distribution
             </Typography>
             <Box sx={{ flex: 1, minHeight: 0 }}>
-              <Pie
-                data={prizePoolData}
-                options={pieOptions}
-                style={{ width: "100%", height: "100%" }}
-              />
+              <Pie data={prizePoolData} options={pieOptions} />
             </Box>
           </Paper>
         </Grid>
 
-        <Grid item xs={12} sx={{ height: "400px" }}>
-          <Paper
-            sx={{
-              p: 3,
-              height: "100%",
-              display: "flex",
-              flexDirection: "column",
-              borderRadius: 2,
-            }}
-            elevation={1}
-          >
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              Tournament Leaderboard
-            </Typography>
-            <TableContainer sx={{ flex: 1 }}>
-              <Table size="small" stickyHeader>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Rank</TableCell>
-                    <TableCell>Team Name</TableCell>
-                    <TableCell align="right">Points</TableCell>
-                    <TableCell align="right">Win Rate</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {leaderboardData.map((row) => (
-                    <TableRow key={row.rank}>
-                      <TableCell>{row.rank}</TableCell>
-                      <TableCell>{row.name}</TableCell>
-                      <TableCell align="right">{row.points}</TableCell>
-                      <TableCell align="right">{row.winRate}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
-        </Grid>
+        {/* Optional: your leaderboard chart/table below */}
       </Grid>
     </Box>
   );

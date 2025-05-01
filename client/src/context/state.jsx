@@ -7,6 +7,7 @@ const State = (props) => {
   const [teams, setTeams] = useState([]);
   const [squads, setSquads] = useState([]);
   const [games, setGames] = useState([]);
+  const [userGames, setUserGames] = useState([]);
   const fetchUserData = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -20,6 +21,7 @@ const State = (props) => {
         name: userData.name,
         avatar: userData.avatar || "",
         email: userData.email,
+        photo: userData.photo,
       };
       setCurrentUser(newUser);
       setSquads(userData.team || []);
@@ -47,6 +49,7 @@ const State = (props) => {
         id: userData._id,
         name: userData.name,
         email: userData.email,
+        photo: userData.photo,
       };
       setTeams(userData.team);
 
@@ -85,9 +88,25 @@ const State = (props) => {
           "http://localhost:8000/api/v1/events",
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        console.log(response);
         // Assuming the returned data has a "teams" array
         setGames(response.data?.data?.data);
+        // setGames((prevGames) => [...prevGames, response.data?.data?.data]);
+      } catch (error) {
+        console.error("Error fetching teams:", error);
+      }
+    }
+  };
+  const fetchGamesForUser = async () => {
+    if (currentUser) {
+      try {
+        const token = localStorage.getItem("token");
+        // Adjust endpoint as per your API route for fetching user teams
+        const response = await axios.get(
+          "http://localhost:8000/api/v1/users/me",
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        // Assuming the returned data has a "teams" array
+        setUserGames(response.data?.data?.data?.event);
         // setGames((prevGames) => [...prevGames, response.data?.data?.data]);
       } catch (error) {
         console.error("Error fetching teams:", error);
@@ -107,6 +126,8 @@ const State = (props) => {
         setCurrentUser,
         games,
         fetchGames,
+        fetchGamesForUser,
+        userGames,
       }}
     >
       {/* eslint-disable react/prop-types */}

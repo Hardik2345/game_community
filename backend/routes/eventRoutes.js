@@ -14,23 +14,23 @@ router
   );
 
 router
+  .route("/add-member")
+  .patch(authController.protect, eventController.addMemberToEvent);
+
+router
   .route("/:id")
   .get(eventController.getEvent)
   .patch(
     authController.protect,
-    authController.restrictTo("admin", "lead-guide"),
+    authController.restrictTo("admin", "leader", "user"),
     eventController.uploadEventImages,
     eventController.resizeEventImages,
     eventController.updateEvent
   )
   .delete(
     authController.protect,
-    authController.restrictTo("admin", "lead-guide"),
+    authController.restrictTo("admin", "leader", "user"),
     eventController.deleteEvent
   );
-
-router
-  .route("/add-member")
-  .patch(authController.protect, eventController.addMemberToEvent);
 
 module.exports = router;

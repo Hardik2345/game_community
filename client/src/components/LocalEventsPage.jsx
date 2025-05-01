@@ -18,11 +18,11 @@ import MuiAlert from "@mui/material/Alert";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Box from "@mui/material/Box";
+import ReactVirtualizedTable from "./ReactVirtualizedTable";
 import tournamentImage from "../assets/banner.jpg";
 import CardActionArea from "@mui/material/CardActionArea";
 import ArrowLeftIcon from "@mui/icons-material/ArrowLeft";
 import context from "../context/context";
-// import { display } from "@mui/system";
 
 export default function LocalEventsPage({ currentUser }) {
   const a = useContext(context);
@@ -43,34 +43,37 @@ export default function LocalEventsPage({ currentUser }) {
     imageCover: "",
     createdBy: currentUser.id,
   });
-  const [cardSelected, setCardSelected] = useState(0);
+  // track selected game for detailed view
+  const [cardSelected, setCardSelected] = useState(false);
+  const [selectedGame, setSelectedGame] = useState(null);
 
   useEffect(() => {
     a.fetchGames();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    a.fetchGamesForUser();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleClickOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
   const handleSnackbarClose = () => setSnackbar({ ...snackbar, open: false });
-  const handleChange = (e) => {
+  const handleChange = (e) =>
     setEventDetails({ ...eventDetails, [e.target.name]: e.target.value });
+  const handleTabChange = (e, newValue) => {
+    setTab(newValue);
+    setCardSelected(false);
+    setSelectedGame(null);
   };
-  const handleTabChange = (event, newValue) => setTab(newValue);
 
   const handleSubmit = async () => {
     const token = localStorage.getItem("token");
     try {
-      const updatedEventDetails = {
-        ...eventDetails,
-        createdBy: currentUser.id,
-      };
       await axios.post(
         "http://localhost:8000/api/v1/events",
-        updatedEventDetails,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { ...eventDetails, createdBy: currentUser.id },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       setSnackbar({
         open: true,
@@ -79,7 +82,7 @@ export default function LocalEventsPage({ currentUser }) {
       });
       setOpen(false);
     } catch (error) {
-      console.error("Error creating event:", error);
+      console.error(error);
       setSnackbar({
         open: true,
         message: "Failed to create event",
@@ -91,25 +94,18 @@ export default function LocalEventsPage({ currentUser }) {
   const joinNow = async (id, member) => {
     const token = localStorage.getItem("token");
     try {
-      const members = {
-        gameId: id,
-        members: member,
-      };
       await axios.patch(
         "http://localhost:8000/api/v1/events/add-member",
-        members,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { gameId: id, members: member },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       setSnackbar({
         open: true,
         message: "Member added successfully!",
         severity: "success",
       });
-      setOpen(false);
     } catch (error) {
-      console.error("Error adding member to the event:", error);
+      console.error(error);
       setSnackbar({
         open: true,
         message: "Failed to add member to the event",
@@ -136,11 +132,11 @@ export default function LocalEventsPage({ currentUser }) {
         </Tabs>
       </Box>
 
-      {/* Tab Panels */}
+      {/* Tournaments Tab */}
       {tab === 0 && (
         <>
           <Grid container spacing={3} alignItems="flex-start">
-            <Grid item xs={12} sm={12} md={12}>
+            <Grid item xs={12}>
               <Card
                 sx={{
                   height: 200,
@@ -185,22 +181,34 @@ export default function LocalEventsPage({ currentUser }) {
               </Card>
             </Grid>
           </Grid>
+          <Typography variant="h5" sx={{ mt: 2, mb: 2 }}>
+            Local Games
+          </Typography>
           <Grid item xs={12}>
-            <Typography variant="h6" gutterBottom>
-              Local Games
-            </Typography>
             <Grid container spacing={2}>
               {a.games.length === 0 ? (
                 <Typography ml={2}>No local games available.</Typography>
               ) : (
                 a.games.map((game, index) => (
                   <Grid item xs={12} sm={4} key={index}>
-                    <Card sx={{ borderRadius: "16px" }}>
+                    <Card
+                      sx={{
+                        borderRadius: "16px",
+                        height: 300,
+                        overflow: "hidden",
+                        position: "relative",
+                      }}
+                    >
                       <CardMedia
                         component="img"
                         height="140"
                         image={game.imageCover}
-                        alt={game.name}
+                        alt="Game cover"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src =
+                            "/default-image-icon-missing-picture-page-vector-40546530.jpg";
+                        }}
                       />
                       <CardContent>
                         <Typography variant="h6">{game.name}</Typography>
@@ -212,6 +220,7 @@ export default function LocalEventsPage({ currentUser }) {
                         <Button
                           variant="outlined"
                           size="small"
+                          sx={{ position: "absolute", bottom: 10 }}
                           onClick={() => joinNow(game._id, currentUser.id)}
                         >
                           Join Now
@@ -226,6 +235,7 @@ export default function LocalEventsPage({ currentUser }) {
         </>
       )}
 
+      {/* Active Tournaments Tab */}
       {tab === 1 && (
         <Box
           sx={{
@@ -236,55 +246,66 @@ export default function LocalEventsPage({ currentUser }) {
           }}
         >
           {!cardSelected ? (
-            <Card
-              sx={{
-                height: 200,
-                backgroundPosition: "center",
-                color: "black",
-                justifyContent: "space-between",
-                borderRadius: "10px",
-                overflow: "hidden",
-                position: "relative",
-              }}
-            >
-              <CardActionArea
-                onClick={() => setCardSelected(true)} // This sets the state to show the back button
-                sx={{
-                  height: "100%",
-                  "&[data-active]": {
-                    backgroundColor: "action.selected",
-                    "&:hover": {
-                      backgroundColor: "action.selectedHover",
-                    },
-                  },
-                }}
-              >
-                <CardContent sx={{ height: "100%" }}>
-                  <Typography
-                    variant="h5"
-                    component="div"
-                    sx={{ color: "white" }}
+            a.userGames && a.userGames.length > 0 ? (
+              a.userGames.map((game) => (
+                <Card
+                  key={game._id}
+                  sx={{
+                    height: 200,
+                    backgroundPosition: "center",
+                    color: "black",
+                    justifyContent: "space-between",
+                    borderRadius: "10px",
+                    overflow: "hidden",
+                    position: "relative",
+                  }}
+                >
+                  <CardActionArea
+                    onClick={() => {
+                      setCardSelected(true);
+                      setSelectedGame(game);
+                    }}
+                    sx={{
+                      height: "100%",
+                      "&[data-active]": {
+                        backgroundColor: "action.selected",
+                        "&:hover": {
+                          backgroundColor: "action.selectedHover",
+                        },
+                      },
+                    }}
                   >
-                    This is card title.
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    This is card content
-                  </Typography>
-                </CardContent>
-              </CardActionArea>
-            </Card>
+                    <CardContent sx={{ height: "100%" }}>
+                      <Typography
+                        variant="h5"
+                        component="div"
+                        sx={{ color: "white" }}
+                      >
+                        {game.name}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {game.description}
+                      </Typography>
+                    </CardContent>
+                  </CardActionArea>
+                </Card>
+              ))
+            ) : (
+              <Typography ml={2}>No active tournaments joined.</Typography>
+            )
           ) : (
-            <Button
-              onClick={() => setCardSelected(false)}
-              sx={{
-                minWidth: 10,
-                width: "auto",
-                padding: 0,
-                alignSelf: "flex-start",
-              }}
-            >
-              <ArrowLeftIcon sx={{ width: 30, height: 30 }} />
-            </Button>
+            <>
+              <Button
+                onClick={() => {
+                  setCardSelected(false);
+                  setSelectedGame(null);
+                }}
+                sx={{ minWidth: 10, padding: 0, alignSelf: "flex-start" }}
+              >
+                <ArrowLeftIcon sx={{ width: 30, height: 30 }} />
+              </Button>
+              <ReactVirtualizedTable game={selectedGame} />
+            </>
           )}
         </Box>
       )}

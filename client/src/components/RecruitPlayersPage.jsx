@@ -48,17 +48,57 @@ export default function RecruitPlayersPage({ currentUser }) {
 
   // Listen for updates on online users
   useEffect(() => {
-    socket.on("updateOnlineUsers", (data) => {
+    socket.on("updateOnlineUsers", async (data) => {
       const { allUsers, onlineUserIds } = data;
-      // Map over all users to add an isOnline flag and other display info
-      const updatedPlayers = allUsers.map((user) => ({
-        ...user,
-        isOnline: onlineUserIds.includes(user._id.toString()),
-        title: user.name,
-        description: `Player description for ${user.name}`,
-        image:
-          "https://img.freepik.com/free-vector/polygonal-face-with-headphones_23-2147507024.jpg",
-      }));
+      // const token = localStorage.getItem("token");
+
+      // 🔁 Only update GV for current user ONCE
+      // try {
+      //   await axios.post(
+      //     "http://localhost:8000/api/v1/gv/update-my-gv",
+      //     {},
+      //     {
+      //       headers: {
+      //         Authorization: `Bearer ${token}`,
+      //       },
+      //     }
+      //   );
+      // } catch (err) {
+      //   console.warn("Failed to update your GV:", err.message);
+      // }
+
+      // 🔁 Now fetch GV for all users
+      const updatedPlayers = await Promise.all(
+        allUsers.map(async (user) => {
+          const isOnline = onlineUserIds.includes(user._id.toString());
+
+          let stats = {
+            winPercentage: "--",
+            kdaRatio: "--",
+            matchesPlayed: "--",
+            rating: "--",
+          };
+
+          try {
+            const res = await axios.get(
+              `http://localhost:8000/api/v1/gv/${user._id}`
+            );
+            stats = res.data.data || stats;
+          } catch (error) {
+            console.warn(`No GV found for ${user.name}`);
+            console.error("Error💥💥: ", error);
+          }
+
+          return {
+            ...user,
+            isOnline,
+            title: user.name,
+            image: `http://localhost:8000/img/users/${user.photo}`,
+            description: `Win percentage: ${stats.winPercentage}%\nKDA ratio: ${stats.kdaRatio}\nMatches played: ${stats.matchesPlayed}\nRating: ${stats.rating}`,
+          };
+        })
+      );
+
       setPlayers(updatedPlayers);
     });
 

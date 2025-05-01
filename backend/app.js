@@ -5,11 +5,17 @@ const morgan = require("morgan");
 const helmet = require("helmet");
 const mongoSanitize = require("express-mongo-sanitize");
 const xss = require("xss-clean");
-const hpp = require("hpp");
+// const hpp = require("hpp");
 const cookieParser = require("cookie-parser");
 const compression = require("compression");
 const cors = require("cors");
+const User = require("./models/userModel");
+const { fork } = require("child_process");
+const cron = require("node-cron");
+const GV = require("./models/gvModel");
 
+const gvRoutes = require("./routes/gvRoutes");
+const valorantRoutes = require("./routes/valorent");
 const userRouter = require("./routes/userRoutes");
 const eventRouter = require("./routes/eventRoutes");
 const chatRouter = require("./routes/chatRoutes");
@@ -35,6 +41,7 @@ app.use(
 app.options("*", cors({ credentials: true, origin: "http://localhost:5173" }));
 
 app.use(express.static(path.join(__dirname, "public")));
+app.use("/img/users", express.static(path.join(__dirname, "public/img/users")));
 
 // Set security HTTP headers
 app.use(helmet());
@@ -89,6 +96,36 @@ app.use("/api/v1/events", eventRouter);
 app.use("/api/v1/chats", chatRouter);
 app.use("/api/v1/teams", teamRouter);
 app.use("/api/v1/invites", inviteRouter);
+app.use("/api/v1/matches", valorantRoutes);
+app.use("/api/v1/gv", gvRoutes);
+
+cron.schedule("0 * * * *", async () => {
+  console.log("⏰ Running hourly GV update...");
+
+  const users = await User.find({
+    riotUsername: { $exists: true },
+    riotTag: { $exists: true },
+  });
+
+  for (const user of users) {
+    const riotId = `${user.riotUsername}#${user.riotTag}`;
+    const child = fork(path.join(__dirname, "scraperWorker.js"));
+    child.send({ riotId });
+
+    child.on("message", async (message) => {
+      if (message.success) {
+        await GV.findOneAndUpdate(
+          { user: user._id },
+          { ...message.stats, updatedAt: Date.now() },
+          { upsert: true }
+        );
+        console.log(`✅ Updated GV for ${user.name}`);
+      } else {
+        console.warn(`⚠️ Failed to update ${user.name}:`, message.error);
+      }
+    });
+  }
+});
 
 app.all("*", (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));

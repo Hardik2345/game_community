@@ -1,25 +1,27 @@
-import { useState, useRef, useEffect } from "react";
-import io from "socket.io-client";
-import axios from "axios";
+/* eslint-disable react/prop-types */
 import {
-  Box,
   Paper,
   Grid,
-  Typography,
-  TextField,
-  IconButton,
+  Box,
+  FormControl,
   Select,
   MenuItem,
-  FormControl,
   Divider,
+  Typography,
   List,
   ListItem,
   ListItemText,
   Avatar,
+  TextField,
+  IconButton,
 } from "@mui/material";
 import { Send as SendIcon } from "@mui/icons-material";
-import { styled } from "@mui/material/styles";
 import FiberManualRecord from "@mui/icons-material/FiberManualRecord";
+import { useState, useContext, useEffect, useRef } from "react";
+import { styled } from "@mui/material/styles";
+import context from "../context/context";
+import io from "socket.io-client";
+import axios from "axios";
 
 const API_BASE_URL = "http://localhost:8000/api/v1";
 const socket = io("http://localhost:8000", { transports: ["websocket"] });
@@ -42,60 +44,60 @@ const InputArea = styled(Box)(({ theme }) => ({
   borderTop: `1px solid ${theme.palette.divider}`,
 }));
 
-const GameChat = () => {
-  const [currentChat, setCurrentChat] = useState("general");
-  const [teams, setTeams] = useState([]);
+export default function GameChatPage({ currentUser }) {
+  const a = useContext(context);
+  const [currentGame, setCurrentGame] = useState("");
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
-  const [currentUser, setCurrentUser] = useState({});
   const messageEndRef = useRef(null);
 
   useEffect(() => {
-    socket.on("receiveMessage", (newMessage) => {
-      setMessages((prev) => [...prev, newMessage]);
-    });
+    if (currentUser) a.fetchGamesForUser();
+    console.log(a.games);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    socket.on("updateOnlineUsers", (users) => {
+  useEffect(() => {
+    const handleNewMessage = (newMessage) => {
+      if (!newMessage.sender || !newMessage.sender.name) {
+        console.error("Received message without sender info:", newMessage);
+      }
+      setMessages((prev) => [...prev, newMessage]);
+    };
+
+    const handleOnlineUsers = (users) => {
       setOnlineUsers(users);
-    });
+    };
+
+    socket.on("receiveMessage", handleNewMessage);
+    socket.on("updateOnlineUsers", handleOnlineUsers);
 
     return () => {
-      socket.off("receiveMessage");
-      socket.off("updateOnlineUsers");
+      socket.off("receiveMessage", handleNewMessage);
+      socket.off("updateOnlineUsers", handleOnlineUsers);
     };
   }, []);
-
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const response = await axios.get(`${API_BASE_URL}/users/me`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-        const userData = response?.data?.data?.data;
-        setCurrentUser({ id: userData._id, name: userData.name });
-        setTeams(userData.team);
-      } catch (error) {
-        console.error("Error fetching user", error);
-      }
-    };
-    fetchUser();
-  }, []);
+    if (currentGame) {
+      // Optionally notify the server about leaving previous room (if applicable)
+      // socket.emit("leaveTeamChat", { teamId: previousTeamId, userId: currentUser.id });
+      fetchMessages(currentGame);
+      socket.emit("joinGameChat", {
+        gameId: currentGame,
+        userId: currentUser.id,
+      });
+    }
+  }, [currentGame, currentUser]);
 
-  useEffect(() => {
-    socket.emit("joinChat", { chatId: currentChat, userId: currentUser.id });
-    fetchMessages(currentChat);
-  }, [currentChat, currentUser]);
-
-  const fetchMessages = async (chatId) => {
+  const fetchMessages = async (gameId) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/chats/${chatId}`, {
+      const response = await axios.get(`${API_BASE_URL}/chats/game/${gameId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
+      console.log(response);
       setMessages(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Error fetching messages", error);
@@ -105,12 +107,16 @@ const GameChat = () => {
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!message.trim()) return;
-    socket.emit("sendMessage", {
-      chatId: currentChat,
-      sender: currentUser.id,
-      message,
-    });
-    setMessage("");
+    try {
+      socket.emit("send", {
+        gameId: currentGame,
+        sender: currentUser.id,
+        message,
+      });
+      setMessage("");
+    } catch (error) {
+      console.error("Error sending message", error);
+    }
   };
 
   return (
@@ -122,13 +128,16 @@ const GameChat = () => {
           <Box sx={{ p: 2 }}>
             <FormControl fullWidth size="small">
               <Select
-                value={currentChat}
-                onChange={(e) => setCurrentChat(e.target.value)}
+                value={currentGame}
+                onChange={(e) => setCurrentGame(e.target.value)}
+                displayEmpty
               >
-                <MenuItem value="general">General Chat</MenuItem>
-                {teams.map((team) => (
-                  <MenuItem key={team._id} value={team._id}>
-                    {team.name}
+                <MenuItem value="" disabled>
+                  Select a game
+                </MenuItem>
+                {a.userGames.map((game) => (
+                  <MenuItem key={game._id} value={game._id}>
+                    {game.name}
                   </MenuItem>
                 ))}
               </Select>
@@ -140,7 +149,9 @@ const GameChat = () => {
             <List>
               {onlineUsers.map((user, index) => (
                 <ListItem key={index}>
-                  <Avatar>{user.name.charAt(0).toUpperCase()}</Avatar>
+                  <Avatar
+                    src={`http://localhost:8000/img/users/${user.photo}`}
+                  ></Avatar>
                   <FiberManualRecord
                     sx={{
                       color: "green",
@@ -150,21 +161,22 @@ const GameChat = () => {
                       left: 44,
                     }}
                   />
-                  <ListItemText primary={user.name} sx={{ ml: 1 }} />
+                  <ListItemText
+                    primary={user.name.split(" ")[0]}
+                    sx={{ ml: 1 }}
+                  />
                 </ListItem>
               ))}
             </List>
           </Box>
         </Paper>
       </Grid>
-
       <Grid item xs={9}>
         <ChatContainer>
           <Box sx={{ p: 2.5, borderBottom: 1, borderColor: "divider" }}>
             <Typography variant="h6">
-              {currentChat === "general"
-                ? "General Chat"
-                : teams.find((team) => team._id === currentChat)?.name}
+              {a.games.find((game) => game._id === currentGame)?.name ||
+                "Select a team to start chatting!"}
             </Typography>
           </Box>
 
@@ -199,7 +211,13 @@ const GameChat = () => {
                   <Typography variant="body1">{msg.content}</Typography>
                   <Typography variant="caption" sx={{ opacity: 0.8 }}>
                     {msg.sender.name},{" "}
-                    {new Date(msg.timestamp).toLocaleString()}
+                    {new Date(msg.timestamp).toLocaleString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true,
+                    })}
                   </Typography>
                 </Paper>
               </Box>
@@ -232,6 +250,4 @@ const GameChat = () => {
       </Grid>
     </Grid>
   );
-};
-
-export default GameChat;
+}
