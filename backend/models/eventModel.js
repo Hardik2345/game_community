@@ -75,7 +75,7 @@ eventSchema.post("save", async function (doc, next) {
     if (doc.members && doc.members.length > 0) {
       await User.updateMany(
         { _id: { $in: doc.members } },
-        { $addToSet: { team: doc._id } } // Ensures no duplicate team IDs
+        { $addToSet: { event: doc._id } } // Ensures no duplicate team IDs
       );
     }
     next();

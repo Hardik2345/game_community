@@ -4,6 +4,7 @@ const catchAsync = require("./../utils/catchAsync");
 const factory = require("./handlerFactory");
 const AppError = require("./../utils/appError");
 const Event = require("./../models/eventModel");
+const User = require("./../models/userModel");
 const multerStorage = multer.memoryStorage();
 
 const multerFilter = (req, file, cb) => {
@@ -23,7 +24,12 @@ exports.uploadEventImages = upload.fields([
   { name: "imageCover", maxCount: 1 },
 ]);
 
+console.log("uploadEventImages middleware triggered");
+
 exports.resizeEventImages = catchAsync(async (req, res, next) => {
+  if (!req.files || !req.files.imageCover) return next();
+  console.log("req.files:", req.files);
+  console.log("req.body:", req.body);
   if (!req.files.imageCover) return next();
 
   // 1) Cover image
@@ -38,12 +44,20 @@ exports.resizeEventImages = catchAsync(async (req, res, next) => {
 });
 
 exports.addMemberToEvent = catchAsync(async (req, res, next) => {
-  const { gameId, memberId } = req.body;
+  const { gameId, members } = req.body;
 
-  // Update the team document by adding the member (using $addToSet to avoid duplicates)
+  if (!gameId || !members) {
+    return next(new AppError("Please provide both gameId and members", 400));
+  }
+
+  // Add member(s) to the event (team)
   const team = await Event.findByIdAndUpdate(
     gameId,
-    { $addToSet: { members: memberId } },
+    {
+      $addToSet: {
+        members: { $each: Array.isArray(members) ? members : [members] },
+      },
+    },
     { new: true, runValidators: true }
   );
 
@@ -51,15 +65,20 @@ exports.addMemberToEvent = catchAsync(async (req, res, next) => {
     return next(new AppError("No team found with that ID", 404));
   }
 
-  // Update the user document by adding the team ID to the user's team array
-  await User.findByIdAndUpdate(memberId, { $addToSet: { team: team._id } });
+  // Add the team ID to each user's `team` field
+  const memberIds = Array.isArray(members) ? members : [members];
+
+  await Promise.all(
+    memberIds.map((memberId) =>
+      User.findByIdAndUpdate(memberId, { $addToSet: { event: team._id } })
+    )
+  );
 
   res.status(200).json({
     status: "success",
-    data: { team },
+    data: { event: team },
   });
 });
-
 exports.getAllEvents = factory.getAll(Event);
 exports.getEvent = factory.getOne(Event);
 exports.createEvent = factory.createOne(Event);

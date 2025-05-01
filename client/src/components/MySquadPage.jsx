@@ -49,8 +49,9 @@ export default function MySquadPage() {
   // Fetch current user, squads, and invites on component mount
   useEffect(() => {
     a.fetchUserData();
+    console.log(a.squads);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [a.squads.length]);
 
   // Function to fetch invites
   const fetchInvites = async () => {
@@ -63,7 +64,6 @@ export default function MySquadPage() {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        console.log("Invites response:", response);
         // Only pending invites are returned from the backend
         setInvites(response.data.data || []);
       } catch (error) {
@@ -136,19 +136,6 @@ export default function MySquadPage() {
 
   const handleCloseSquadDetail = () => {
     setSelectedSquad(null);
-  };
-
-  // Helper function to determine what to display for a member
-  const getDisplayMember = (member) => {
-    if (typeof member === "object" && member.name) {
-      return member;
-    } else if (
-      a.currentUser &&
-      (member === a.currentUser.id || member === a.currentUser._id)
-    ) {
-      return a.currentUser;
-    }
-    return { name: "Member", avatar: "" };
   };
 
   // Handle invite accept action: update invite status and add current user to the team
@@ -273,12 +260,13 @@ export default function MySquadPage() {
 
   // Derived squads based on createdBy field once a.currentUser is loaded
   const createdSquads = a.currentUser
-    ? a.squads.filter((squad) => squad.createdBy === a.currentUser.id)
+    ? a.squads.filter((squad) => {
+        return squad.createdBy === a.currentUser.id;
+      })
     : [];
   const joinedSquads = a.currentUser
     ? a.squads.filter((squad) => squad.createdBy !== a.currentUser.id)
     : [];
-
   return (
     <Container
       sx={{
@@ -344,16 +332,17 @@ export default function MySquadPage() {
                     {squad.members && squad.members.length > 0 && (
                       <AvatarGroup max={4}>
                         {squad.members.map((member, idx) => {
-                          const displayMember = getDisplayMember(member);
                           return (
                             <Avatar
                               key={idx}
-                              src={displayMember.avatar || undefined}
-                              alt={displayMember.name}
+                              src={
+                                member.photo
+                                  ? `http://localhost:8000/img/users/${member.photo}`
+                                  : undefined
+                              }
+                              alt={member.name}
                             >
-                              {!displayMember.avatar &&
-                                displayMember.name &&
-                                displayMember.name[0]}
+                              {/* {!member.photo && member.name && member.name[0]} */}
                             </Avatar>
                           );
                         })}
@@ -397,16 +386,17 @@ export default function MySquadPage() {
                     {squad.members && squad.members.length > 0 && (
                       <AvatarGroup max={4}>
                         {squad.members.map((member, idx) => {
-                          const displayMember = getDisplayMember(member);
                           return (
                             <Avatar
                               key={idx}
-                              src={displayMember.avatar || undefined}
-                              alt={displayMember.name}
+                              src={
+                                member.photo
+                                  ? `http://localhost:8000/img/users/${member.photo}`
+                                  : undefined
+                              }
+                              alt={member.name}
                             >
-                              {!displayMember.avatar &&
-                                displayMember.name &&
-                                displayMember.name[0]}
+                              {/* {!member.photo && member.name && member.name[0]} */}
                             </Avatar>
                           );
                         })}
@@ -553,20 +543,21 @@ export default function MySquadPage() {
             </Typography>
             <List>
               {selectedSquad.members.map((member, idx) => {
-                const displayMember = getDisplayMember(member);
                 return (
                   <ListItem key={idx}>
                     <ListItemAvatar>
                       <Avatar
-                        src={displayMember.avatar || undefined}
-                        alt={displayMember.name}
+                        src={
+                          member.photo
+                            ? `http://localhost:8000/img/users/${member.photo}`
+                            : undefined
+                        }
+                        alt={member.name}
                       >
-                        {!displayMember.avatar &&
-                          displayMember.name &&
-                          displayMember.name[0]}
+                        {/* {!member.photo && member.name && member.name[0]} */}
                       </Avatar>
                     </ListItemAvatar>
-                    <ListItemText primary={displayMember.name} />
+                    <ListItemText primary={member.name} />
                   </ListItem>
                 );
               })}

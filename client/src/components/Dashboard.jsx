@@ -3,18 +3,18 @@ import { useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { extendTheme } from "@mui/material/styles";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
-import Tooltip from "@mui/material/Tooltip";
+// import TextField from "@mui/material/TextField";
+// import Tooltip from "@mui/material/Tooltip";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PeopleIcon from "@mui/icons-material/People";
 import IconButton from "@mui/material/IconButton";
-import SearchIcon from "@mui/icons-material/Search";
+// import SearchIcon from "@mui/icons-material/Search";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import GroupsIcon from "@mui/icons-material/Groups";
 import ChatIcon from "@mui/icons-material/Chat";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { AppProvider } from "@toolpad/core";
-import { DashboardLayout, ThemeSwitcher } from "@toolpad/core/DashboardLayout";
+import { DashboardLayout } from "@toolpad/core/DashboardLayout";
 import { PageContainer } from "@toolpad/core/PageContainer";
 import DashboardPage from "./DashboardPage";
 import RecruitPlayersPage from "./RecruitPlayersPage";
@@ -27,9 +27,11 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import PropTypes from "prop-types";
 import SportsEsportsIcon from "@mui/icons-material/SportsEsports";
+import PersonIcon from "@mui/icons-material/Person";
 import GameChatPage from "./GameChatPage";
 // import axios from "axios";
 import context from "../context/context";
+import ProfilePage from "./ProfilePage";
 
 // const API_BASE_URL = "http://localhost:8000/api/v1";
 
@@ -76,6 +78,12 @@ const NAVIGATION = [
     title: "My Squad",
     icon: <GroupsIcon />,
     fullPath: "/squad",
+  },
+  {
+    segment: "profile",
+    title: "Profile Settings",
+    icon: <PersonIcon />,
+    fullPath: "/profile",
   },
 ];
 
@@ -196,19 +204,19 @@ function useRouter() {
   };
 }
 
-function ToolbarActionsSearch() {
-  return (
-    <Stack direction="row" spacing={1}>
-      <TextField label="Search" variant="outlined" size="small" />
-      <Tooltip title="Search" enterDelay={1000}>
-        <IconButton type="button" aria-label="search">
-          <SearchIcon />
-        </IconButton>
-      </Tooltip>
-      <ThemeSwitcher />
-    </Stack>
-  );
-}
+// function ToolbarActionsSearch() {
+//   return (
+//     <Stack direction="row" spacing={1}>
+//       <TextField label="Search" variant="outlined" size="small" />
+//       <Tooltip title="Search" enterDelay={1000}>
+//         <IconButton type="button" aria-label="search">
+//           <SearchIcon />
+//         </IconButton>
+//       </Tooltip>
+//       <ThemeSwitcher />
+//     </Stack>
+//   );
+// }
 
 export default function DashboardLayoutBasic() {
   const a = useContext(context);
@@ -217,14 +225,14 @@ export default function DashboardLayoutBasic() {
     user: {
       name: "",
       email: "",
-      image: "https://avatars.githubusercontent.com/u/141572034?v=4",
+      image: "",
     },
   });
 
   React.useEffect(() => {
     a.fetchUser();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [a.currentUser?.photo]);
 
   React.useEffect(() => {
     if (a.currentUser) {
@@ -234,6 +242,7 @@ export default function DashboardLayoutBasic() {
           ...prevSession.user,
           name: a.currentUser.name,
           email: a.currentUser.email,
+          image: `http://localhost:8000/img/users/${a.currentUser.photo}`,
         },
       }));
     } else {
@@ -274,6 +283,8 @@ export default function DashboardLayoutBasic() {
         return <TeamChatPage currentUser={a.currentUser} />;
       case "/chat/game-chat":
         return <GameChatPage currentUser={a.currentUser} />;
+      case "/profile":
+        return <ProfilePage currentUser={a.currentUser} />;
       default:
         router.navigate("/dashboard");
         return <DashboardPage />;
@@ -291,7 +302,7 @@ export default function DashboardLayoutBasic() {
     >
       <DashboardLayout
         slots={{
-          toolbarActions: ToolbarActionsSearch,
+          // toolbarActions: ToolbarActionsSearch,
           sidebarFooter: () => (
             <SidebarFooter
               session={session}
@@ -299,22 +310,24 @@ export default function DashboardLayoutBasic() {
             />
           ),
         }}
-        slotProps={{
-          toolbarAccount: a.currentUser
-            ? {
-                avatar: { src: a.currentUser.avatar || "" }, // Show avatar if logged in
-                slotProps: {
-                  popover: { open: false, sx: { display: "block" } },
-                  signOutButton: { sx: { display: "block" } },
-                },
-              }
-            : {
-                slotProps: {
-                  popover: { open: false, sx: { display: "none" } },
-                  signOutButton: { sx: { display: "none" } },
-                },
-              },
-        }}
+        // slotProps={{
+        //   toolbarAccount: a.currentUser
+        //     ? {
+        //         avatar: {
+        //           src: `http://localhost:8000/img/users/${session.user.image}`,
+        //         },
+        //         slotProps: {
+        //           popover: { open: false, sx: { display: "block" } },
+        //           signOutButton: { sx: { display: "block" } },
+        //         },
+        //       }
+        //     : {
+        //         slotProps: {
+        //           popover: { open: false, sx: { display: "none" } },
+        //           signOutButton: { sx: { display: "none" } },
+        //         },
+        //       },
+        // }}
         disableCollapsibleSidebar={true}
       >
         <PageContainer>{renderPage()}</PageContainer>

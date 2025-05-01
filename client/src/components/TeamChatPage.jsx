@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable react/prop-types */
 import { useState, useRef, useEffect, useContext } from "react";
 import io from "socket.io-client";
@@ -67,6 +68,7 @@ const TeamChatPage = ({ currentUser }) => {
 
     socket.on("receiveMessage", handleNewMessage);
     socket.on("updateOnlineUsers", handleOnlineUsers);
+    console.log(onlineUsers);
 
     return () => {
       socket.off("receiveMessage", handleNewMessage);
@@ -143,7 +145,9 @@ const TeamChatPage = ({ currentUser }) => {
             <List>
               {onlineUsers.map((user, index) => (
                 <ListItem key={index}>
-                  <Avatar>{user.name.charAt(0).toUpperCase()}</Avatar>
+                  <Avatar
+                    src={`http://localhost:8000/img/users/${user.photo}`}
+                  ></Avatar>
                   <FiberManualRecord
                     sx={{
                       color: "green",
@@ -153,7 +157,10 @@ const TeamChatPage = ({ currentUser }) => {
                       left: 44,
                     }}
                   />
-                  <ListItemText primary={user.name} sx={{ ml: 1 }} />
+                  <ListItemText
+                    primary={user.name.split(" ")[0]}
+                    sx={{ ml: 1 }}
+                  />
                 </ListItem>
               ))}
             </List>

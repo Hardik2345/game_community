@@ -7,12 +7,12 @@ const factory = require("./handlerFactory");
 
 // const multerStorage = multer.diskStorage({
 //   destination: (req, file, cb) => {
-//     cb(null, 'public/img/users');
+//     cb(null, "public/img/users");
 //   },
 //   filename: (req, file, cb) => {
-//     const ext = file.mimetype.split('/')[1];
+//     const ext = file.mimetype.split("/")[1];
 //     cb(null, `user-${req.user.id}-${Date.now()}.${ext}`);
-//   }
+//   },
 // });
 const multerStorage = multer.memoryStorage();
 
@@ -103,7 +103,10 @@ exports.createUser = (req, res) => {
   });
 };
 
-exports.getUser = factory.getOne(User, "team name");
+exports.getUser = factory.getOne(User, [
+  { path: "team" },
+  { path: "event", select: "name description" },
+]);
 exports.getAllUsers = factory.getAll(User);
 
 // Do NOT update passwords with this!

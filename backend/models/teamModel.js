@@ -11,7 +11,7 @@ const teamSchema = new mongoose.Schema({
 });
 
 teamSchema.pre(/^find/, function (next) {
-  this.populate("members", "name email"); // Fetch selected fields
+  this.populate("members", "name email photo"); // Fetch selected fields
   next();
 });
 
