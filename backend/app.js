@@ -92,6 +92,8 @@ app.use(mongoSanitize());
 app.use(xss());
 app.use(compression());
 
+require("./swagger")(app);
+
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/events", eventRouter);
 app.use("/api/v1/chats", chatRouter);

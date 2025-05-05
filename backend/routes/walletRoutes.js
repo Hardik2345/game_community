@@ -7,10 +7,32 @@ const {
 
 const router = express.Router();
 
-// Get your own wallet balance
+/**
+ * @swagger
+ * /wallets/me:
+ *   get:
+ *     summary: Get your wallet balance
+ *     tags: [Wallets]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Wallet data
+ */
 router.get("/me", protect, getMyWallet);
 
-// Reward wallet based on wins (manual trigger)
+/**
+ * @swagger
+ * /wallets/reward:
+ *   post:
+ *     summary: Reward your wallet based on wins
+ *     tags: [Wallets]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Wallet rewarded
+ */
 router.post("/reward", protect, rewardMyWalletFromWins);
 
 module.exports = router;

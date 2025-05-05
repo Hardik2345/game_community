@@ -296,7 +296,12 @@ export default function LocalEventsPage({ currentUser }) {
             <Card
               key={game._id}
               onClick={() => setSelectedTournament(game)}
-              sx={{ height: 200, borderRadius: "10px", position: "relative" }}
+              sx={{
+                height: 200,
+                borderRadius: "10px",
+                position: "relative",
+                mb: "10px",
+              }}
             >
               <CardActionArea sx={{ height: "100%" }}>
                 <CardContent sx={{ height: "100%" }}>
