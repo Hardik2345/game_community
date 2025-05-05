@@ -9,10 +9,7 @@ const xss = require("xss-clean");
 const cookieParser = require("cookie-parser");
 const compression = require("compression");
 const cors = require("cors");
-const User = require("./models/userModel");
-const { fork } = require("child_process");
-const cron = require("node-cron");
-const GV = require("./models/gvModel");
+// const rewardWalletIfNeeded = require("./utils/rewardWalletIfNeeded");
 
 const gvRoutes = require("./routes/gvRoutes");
 const valorantRoutes = require("./routes/valorent");
@@ -22,8 +19,11 @@ const chatRouter = require("./routes/chatRoutes");
 const teamRouter = require("./routes/teamRoutes");
 const inviteRouter = require("./routes/inviteRoutes");
 const matchRouter = require("./routes/matchRoutes");
+const walletRouter = require("./routes/walletRoutes");
 const AppError = require("./utils/appError");
 const globalErrorHandler = require("./controllers/errorController");
+const scheduleGVHourlyUpdate = require("./utils/gvScheduler");
+// const User = require("./models/userModel");
 
 const app = express();
 app.enable("trust proxy", 1);
@@ -100,34 +100,51 @@ app.use("/api/v1/invites", inviteRouter);
 app.use("/api/v1/matches", valorantRoutes);
 app.use("/api/v1/gv", gvRoutes);
 app.use("/api/v1/dashboard", matchRouter);
+app.use("/api/v1/wallets", walletRouter);
 
-cron.schedule("0 * * * *", async () => {
-  console.log("⏰ Running hourly GV update...");
+// cron.schedule("0 * * * *", async () => {
+//   console.log("⏰ Running hourly GV update...");
 
-  const users = await User.find({
-    riotUsername: { $exists: true },
-    riotTag: { $exists: true },
-  });
+//   const users = await User.find({
+//     riotUsername: { $exists: true },
+//     riotTag: { $exists: true },
+//   });
 
-  for (const user of users) {
-    const riotId = `${user.riotUsername}#${user.riotTag}`;
-    const child = fork(path.join(__dirname, "scraperWorker.js"));
-    child.send({ riotId });
+//   for (const user of users) {
+//     const riotId = `${user.riotUsername}#${user.riotTag}`;
+//     const child = fork(path.join(__dirname, "scraperWorker.js"));
+//     child.send({ riotId });
 
-    child.on("message", async (message) => {
-      if (message.success) {
-        await GV.findOneAndUpdate(
-          { user: user._id },
-          { ...message.stats, updatedAt: Date.now() },
-          { upsert: true }
-        );
-        console.log(`✅ Updated GV for ${user.name}`);
-      } else {
-        console.warn(`⚠️ Failed to update ${user.name}:`, message.error);
-      }
-    });
-  }
-});
+//     child.on("message", async (message) => {
+//       if (message.success) {
+//         await GV.findOneAndUpdate(
+//           { user: user._id },
+//           { ...message.stats, updatedAt: Date.now() },
+//           { upsert: true }
+//         );
+//         console.log(`✅ Updated GV for ${user.name}`);
+//       } else {
+//         console.warn(`⚠️ Failed to update ${user.name}:`, message.error);
+//       }
+//     });
+//   }
+// });
+
+scheduleGVHourlyUpdate();
+
+// const reward = async () => {
+//   const users = await User.find({});
+//   for (const user of users) {
+//     try {
+//       await rewardWalletIfNeeded(user._id);
+//       console.log(`✅ Rewarded ${user.name}`);
+//     } catch (err) {
+//       console.error(`❌ Error rewarding ${user.name}:`, err.message);
+//     }
+//   }
+// };
+
+// reward();
 
 app.all("*", (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));

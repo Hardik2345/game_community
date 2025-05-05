@@ -1,17 +1,28 @@
-const { fork } = require("child_process");
-const path = require("path");
+const axios = require("axios");
 const GV = require("../models/gvModel");
 const User = require("../models/userModel");
+const Wallet = require("../models/walletModel");
 
-// Util: fallback stats if something fails
-const defaultStats = {
-  winPercentage: 0,
-  kdaRatio: 0,
-  matchesPlayed: 0,
-  rating: 0,
+const REWARD_PER_WIN = 50;
+
+const calcStatsFromMatches = (matches) => {
+  const total = matches.length;
+  const wins = matches.filter((m) => m.result === "Victory").length;
+  const avgKDA =
+    matches.reduce((acc, m) => {
+      const [k, d, a] = m.kda?.split(" / ").map(Number) || [0, 1, 0];
+      return acc + (k + a) / d;
+    }, 0) / total;
+
+  return {
+    winPercentage: Math.round((wins / total) * 100),
+    kdaRatio: +avgKDA.toFixed(2),
+    matchesPlayed: total,
+    rating: Math.round(avgKDA * 100),
+    totalWins: wins, // 🔥 add this for tracking
+  };
 };
 
-// 🔄 UPDATE GV using child worker
 exports.updateGV = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -25,44 +36,47 @@ exports.updateGV = async (req, res) => {
     }
 
     const riotId = `${user.riotUsername}#${user.riotTag}`;
-    const workerPath = path.join(__dirname, "../scraperWorker.js");
-    const child = fork(workerPath);
 
-    // Send riotId to child process
-    child.send({ riotId });
-
-    child.on("message", async (message) => {
-      if (message.success) {
-        const stats = message.stats;
-
-        const gv = await GV.findOneAndUpdate(
-          { user: userId },
-          { ...stats, updatedAt: Date.now() },
-          { new: true, upsert: true }
-        );
-
-        return res.status(200).json({
-          status: "success",
-          data: gv,
-        });
-      } else {
-        console.error("Scraper failed:", message.error);
-        return res.status(500).json({
-          status: "error",
-          message: "Scraper failed to retrieve match data.",
-        });
+    const { data: matches } = await axios.get(
+      "http://localhost:8000/api/v1/matches/valorant-matches",
+      {
+        headers: {
+          riotid: riotId,
+        },
       }
-    });
+    );
 
-    child.on("error", (err) => {
-      console.error("Child process error:", err);
-      return res.status(500).json({
-        status: "error",
-        message: "Internal scraper error.",
-      });
+    const stats = calcStatsFromMatches(matches);
+
+    // Fetch current GV to compare previous wins
+    const existingGV = await GV.findOne({ user: userId });
+    const prevWins = existingGV?.totalWins || 0;
+    const newWins = stats.totalWins - prevWins;
+
+    const gv = await GV.findOneAndUpdate(
+      { user: userId },
+      { ...stats, updatedAt: Date.now() },
+      { new: true, upsert: true }
+    );
+
+    // 🪙 Reward only new wins
+    if (newWins > 0) {
+      await Wallet.findOneAndUpdate(
+        { user: userId },
+        {
+          $inc: { balance: newWins * REWARD_PER_WIN },
+          $set: { lastUpdated: Date.now() },
+        },
+        { upsert: true }
+      );
+    }
+
+    res.status(200).json({
+      status: "success",
+      data: gv,
     });
   } catch (err) {
-    console.error("Controller error:", err);
+    console.error("GV update error:", err);
     res.status(500).json({ status: "error", message: "Failed to update GV" });
   }
 };

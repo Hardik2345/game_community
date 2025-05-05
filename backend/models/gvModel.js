@@ -11,6 +11,10 @@ const gvSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  totalWins: {
+    type: Number,
+    default: 0,
+  },
   kdaRatio: {
     type: Number,
     default: 0,

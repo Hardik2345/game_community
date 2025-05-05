@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const mongoose = require("mongoose");
 const validator = require("validator");
 const bcrypt = require("bcryptjs");
+const Wallet = require("./walletModel");
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -102,6 +103,20 @@ userSchema.pre(/^find/, function (next) {
   // this points to the current query
   this.find({ active: { $ne: false } });
   next();
+});
+
+userSchema.post("save", async function (doc, next) {
+  try {
+    const existing = await Wallet.findOne({ user: doc._id });
+    if (!existing) {
+      await Wallet.create({ user: doc._id });
+      console.log(`🆕 Wallet created for user: ${doc.name}`);
+    }
+    next();
+  } catch (err) {
+    console.error("❌ Wallet creation failed for new user:", err.message);
+    next(err);
+  }
 });
 
 userSchema.methods.correctPassword = async function (

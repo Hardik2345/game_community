@@ -23,6 +23,8 @@ import tournamentImage from "../assets/banner.jpg";
 import CardActionArea from "@mui/material/CardActionArea";
 // import ArrowLeftIcon from "@mui/icons-material/ArrowLeft";
 import context from "../context/context";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ReactVirtualizedTable from "./ReactVirtualizedTable";
 
 export default function LocalEventsPage({ currentUser }) {
   const a = useContext(context);
@@ -46,9 +48,11 @@ export default function LocalEventsPage({ currentUser }) {
     createdBy: currentUser.id,
   });
   const [imageFile, setImageFile] = useState(null);
+  const [selectedTournament, setSelectedTournament] = useState(null);
 
   useEffect(() => {
     a.fetchGames();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
     a.fetchGamesForUser();
@@ -105,6 +109,16 @@ export default function LocalEventsPage({ currentUser }) {
   };
   const handleProceedToPayment = async () => {
     try {
+      await axios.patch(
+        `http://localhost:8000/api/v1/events/add-member`,
+        { gameId: selectedGame._id, members: currentUser.id }, // or eventId, based on your backend
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
       // Call your express route
       const { data } = await axios.get(
         `http://localhost:8000/api/v1/events/checkout-session/${selectedGame._id}`,
@@ -174,7 +188,7 @@ export default function LocalEventsPage({ currentUser }) {
                 <CardContent sx={{ backgroundColor: "transparent" }}>
                   <Typography
                     gutterBottom
-                    variant="h1"
+                    variant="h4"
                     sx={{ fontSize: "30px", color: "#ff6600" }}
                   >
                     Create Tournament!
@@ -259,30 +273,44 @@ export default function LocalEventsPage({ currentUser }) {
       )}
 
       {/* Active Tournaments Tab */}
-      {tab === 1 && (
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          {a.userGames && a.userGames.length > 0 ? (
-            a.userGames.map((game) => (
-              <Card
-                key={game._id}
-                onClick={() => handleJoinClick(game)}
-                sx={{ height: 200, borderRadius: "10px", position: "relative" }}
+      {tab === 1 &&
+        (selectedTournament ? (
+          <>
+            <Box display="flex" alignItems="center" gap={2} mb={2}>
+              <Button
+                variant="outlined"
+                startIcon={<ArrowBackIcon />}
+                onClick={() => setSelectedTournament(null)}
               >
-                <CardActionArea sx={{ height: "100%" }}>
-                  <CardContent sx={{ height: "100%" }}>
-                    <Typography variant="h5">{game.name}</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {game.description}
-                    </Typography>
-                  </CardContent>
-                </CardActionArea>
-              </Card>
-            ))
-          ) : (
-            <Typography ml={2}>No active tournaments joined.</Typography>
-          )}
-        </Box>
-      )}
+                Back
+              </Button>
+            </Box>
+
+            <ReactVirtualizedTable
+              data={selectedTournament.players || []}
+              onRowClick={(rowData) => console.log("Row clicked:", rowData)}
+            />
+          </>
+        ) : a.userGames && a.userGames.length > 0 ? (
+          a.userGames.map((game) => (
+            <Card
+              key={game._id}
+              onClick={() => setSelectedTournament(game)}
+              sx={{ height: 200, borderRadius: "10px", position: "relative" }}
+            >
+              <CardActionArea sx={{ height: "100%" }}>
+                <CardContent sx={{ height: "100%" }}>
+                  <Typography variant="h5">{game.name}</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {game.description}
+                  </Typography>
+                </CardContent>
+              </CardActionArea>
+            </Card>
+          ))
+        ) : (
+          <Typography ml={2}>No active tournaments joined.</Typography>
+        ))}
 
       {/* Create Event Dialog */}
       <Dialog

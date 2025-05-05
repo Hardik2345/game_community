@@ -34,6 +34,9 @@ const eventSchema = new mongoose.Schema({
     type: Number,
     required: [true, "An event must have a price"],
   },
+  pool: {
+    type: Number,
+  },
   description: {
     type: String,
     trim: true,
@@ -67,6 +70,32 @@ eventSchema.pre("save", function (next) {
 
 eventSchema.pre(/^find/, function (next) {
   this.populate("members", "name email"); // Fetch selected fields
+  next();
+});
+
+eventSchema.pre("findOneAndUpdate", async function (next) {
+  const update = this.getUpdate();
+  const isMemberUpdate = update.$push || update.$addToSet || update.$pull;
+
+  if (isMemberUpdate) {
+    const doc = await this.model.findOne(this.getQuery());
+    const updatedMembers = new Set(doc.members.map((m) => m.toString()));
+
+    // Apply updates to simulate the new member count
+    if (update.$addToSet && update.$addToSet.members) {
+      updatedMembers.add(update.$addToSet.members.toString());
+    }
+    if (update.$pull && update.$pull.members) {
+      updatedMembers.delete(update.$pull.members.toString());
+    }
+
+    const memberCount = updatedMembers.size;
+    const newPool = memberCount * doc.price;
+
+    update.$set = { ...(update.$set || {}), pool: newPool };
+    this.setUpdate(update);
+  }
+
   next();
 });
 

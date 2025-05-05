@@ -93,6 +93,7 @@ exports.getCheckoutSession = catchAsync(async (req, res, next) => {
     success_url: `${req.protocol}://${req.get("host")}/`,
     cancel_url: `${req.protocol}://${req.get("host")}/`,
     client_reference_id: req.params.eventId,
+    metadata: { userId: req.user.id },
     line_items: [
       {
         price_data: {

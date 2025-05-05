@@ -1,18 +1,22 @@
 import * as React from "react";
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { extendTheme } from "@mui/material/styles";
+import {
+  createTheme,
+  ThemeProvider,
+  responsiveFontSizes,
+} from "@mui/material/styles";
 import Stack from "@mui/material/Stack";
-// import TextField from "@mui/material/TextField";
-// import Tooltip from "@mui/material/Tooltip";
+import IconButton from "@mui/material/IconButton";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PeopleIcon from "@mui/icons-material/People";
-import IconButton from "@mui/material/IconButton";
-// import SearchIcon from "@mui/icons-material/Search";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import GroupsIcon from "@mui/icons-material/Groups";
 import ChatIcon from "@mui/icons-material/Chat";
 import LogoutIcon from "@mui/icons-material/Logout";
+import SportsEsportsIcon from "@mui/icons-material/SportsEsports";
+import PersonIcon from "@mui/icons-material/Person";
+import Brightness4Icon from "@mui/icons-material/Brightness4"; // Import icon for theme toggle
 import { AppProvider } from "@toolpad/core";
 import { DashboardLayout } from "@toolpad/core/DashboardLayout";
 import { PageContainer } from "@toolpad/core/PageContainer";
@@ -21,19 +25,14 @@ import RecruitPlayersPage from "./RecruitPlayersPage";
 import MySquadPage from "./MySquadPage";
 import LocalEventsPage from "./LocalEventsPage";
 import TeamChatPage from "./TeamChatPage";
+import GameChatPage from "./GameChatPage";
+import ProfilePage from "./ProfilePage";
 import Card from "@mui/material/Card";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import PropTypes from "prop-types";
-import SportsEsportsIcon from "@mui/icons-material/SportsEsports";
-import PersonIcon from "@mui/icons-material/Person";
-import GameChatPage from "./GameChatPage";
-// import axios from "axios";
 import context from "../context/context";
-import ProfilePage from "./ProfilePage";
-
-// const API_BASE_URL = "http://localhost:8000/api/v1";
 
 const NAVIGATION = [
   {
@@ -87,92 +86,59 @@ const NAVIGATION = [
   },
 ];
 
-const demoTheme = extendTheme({
-  colorSchemes: { light: true, dark: true },
-  colorSchemeSelector: "class",
-  breakpoints: {
-    values: {
-      xs: 0,
-      sm: 600,
-      md: 600,
-      lg: 1200,
-      xl: 1536,
-    },
-  },
-});
-
 function SidebarFooter({ session, authentication }) {
-  if (!session?.user?.name) {
-    return null;
-  }
+  if (!session?.user?.name) return null;
 
   return (
     <Card
       sx={{
         width: "100%",
         bgcolor: "background.paper",
-        boxShadow: "none",
         border: "1px solid",
         borderColor: "divider",
         borderRadius: 0,
-        "&:hover": {
-          boxShadow: 1,
-          transition: "box-shadow 0.3s ease-in-out",
-        },
+        boxShadow: "0 0 10px #1080ff",
       }}
     >
-      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ p: 2 }}>
+      <Stack direction="row" alignItems="center" spacing={2} sx={{ p: 2 }}>
         <Avatar
           src={session.user.image}
           alt={session.user.name}
           sx={{
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             border: "2px solid",
             borderColor: "primary.main",
+            boxShadow: "0 0 8px #1080ff",
           }}
         />
-        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-          <Typography variant="body1" fontWeight="500" sx={{ lineHeight: 1.2 }}>
+        <Box sx={{ flexGrow: 1 }}>
+          <Typography variant="body1" fontWeight="600" noWrap>
             {session.user.name}
           </Typography>
           <Typography
             variant="caption"
             color="text.secondary"
-            sx={{
-              display: "block",
-              textOverflow: "ellipsis",
-              overflow: "hidden",
-              whiteSpace: "nowrap",
-            }}
+            noWrap
+            sx={{ fontStyle: "italic" }}
           >
             {session.user.email}
           </Typography>
         </Box>
-        <IconButton
-          size="small"
-          onClick={authentication.signOut}
-          sx={{
-            color: "text.secondary",
-            "&:hover": {
-              color: "error.main",
-            },
-          }}
-        >
-          <LogoutIcon fontSize="small" />
+        <IconButton onClick={authentication.signOut} color="secondary">
+          <LogoutIcon />
         </IconButton>
       </Stack>
     </Card>
   );
 }
 
-// ✅ **PropTypes Validation**
 SidebarFooter.propTypes = {
   session: PropTypes.shape({
     user: PropTypes.shape({
-      name: PropTypes.string.isRequired,
-      email: PropTypes.string.isRequired,
-      image: PropTypes.string.isRequired,
+      name: PropTypes.string,
+      email: PropTypes.string,
+      image: PropTypes.string,
     }),
   }),
   authentication: PropTypes.shape({
@@ -181,20 +147,17 @@ SidebarFooter.propTypes = {
   }).isRequired,
 };
 
-// Default Props (optional, to prevent errors if session is undefined)
 SidebarFooter.defaultProps = {
   session: null,
 };
 
 function useRouter() {
   const [pathname, setPathname] = React.useState(window.location.pathname);
-
   React.useEffect(() => {
     const handlePopState = () => setPathname(window.location.pathname);
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
-
   return {
     pathname,
     navigate: (path) => {
@@ -204,23 +167,10 @@ function useRouter() {
   };
 }
 
-// function ToolbarActionsSearch() {
-//   return (
-//     <Stack direction="row" spacing={1}>
-//       <TextField label="Search" variant="outlined" size="small" />
-//       <Tooltip title="Search" enterDelay={1000}>
-//         <IconButton type="button" aria-label="search">
-//           <SearchIcon />
-//         </IconButton>
-//       </Tooltip>
-//       <ThemeSwitcher />
-//     </Stack>
-//   );
-// }
-
 export default function DashboardLayoutBasic() {
   const a = useContext(context);
   const navigate = useNavigate();
+
   const [session, setSession] = React.useState({
     user: {
       name: "",
@@ -229,6 +179,8 @@ export default function DashboardLayoutBasic() {
     },
   });
 
+  const [darkMode, setDarkMode] = useState(true); // State to toggle light/dark mode
+
   React.useEffect(() => {
     a.fetchUser();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -236,36 +188,29 @@ export default function DashboardLayoutBasic() {
 
   React.useEffect(() => {
     if (a.currentUser) {
-      setSession((prevSession) => ({
-        ...prevSession,
+      setSession({
         user: {
-          ...prevSession.user,
           name: a.currentUser.name,
           email: a.currentUser.email,
           image: `http://localhost:8000/img/users/${a.currentUser.photo}`,
         },
-      }));
+      });
     } else {
-      setSession((prevSession) => ({
-        ...prevSession,
-        user: null, // ✅ Properly reset user in session when logged out
-      }));
+      setSession(null);
     }
   }, [a.currentUser]);
 
-  const appAuthentication = React.useMemo(() => {
-    return {
-      signIn: () => {
-        navigate("/signin");
-      },
+  const appAuthentication = React.useMemo(
+    () => ({
+      signIn: () => navigate("/signin"),
       signOut: () => {
-        localStorage.removeItem("token"); // Remove token
-        setSession(null); // Reset session
-        a.setCurrentUser(null); // Clear currentUser state
+        localStorage.removeItem("token");
+        setSession(null);
+        a.setCurrentUser(null);
       },
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    }),
+    [navigate, a]
+  );
 
   const router = useRouter();
 
@@ -291,47 +236,97 @@ export default function DashboardLayoutBasic() {
     }
   };
 
+  const toggleDarkMode = () => {
+    setDarkMode((prevMode) => !prevMode);
+  };
+
+  let theme = createTheme({
+    palette: {
+      mode: darkMode ? "dark" : "light", // Switch between dark and light mode
+      background: {
+        default: darkMode ? "#0d1117" : "#f5f5f5",
+        paper: darkMode ? "#161b22" : "#ffffff",
+      },
+      primary: {
+        main: "#1080ff",
+      },
+      secondary: {
+        main: "#ff00ff",
+      },
+      text: {
+        primary: darkMode ? "#e6edf3" : "#000000",
+        secondary: darkMode ? "#8b949e" : "#555555",
+      },
+    },
+  });
+
+  const demoTheme = createTheme({
+    cssVariables: {
+      colorSchemeSelector: "data-toolpad-color-scheme",
+    },
+    colorSchemes: { light: true, dark: true },
+    breakpoints: {
+      values: {
+        xs: 0,
+        sm: 600,
+        md: 600,
+        lg: 1200,
+        xl: 1536,
+      },
+    },
+  });
+
+  theme = responsiveFontSizes(theme);
+
   return (
-    <AppProvider
-      session={session}
-      authentication={appAuthentication}
-      navigation={NAVIGATION}
-      router={router}
-      theme={demoTheme}
-      branding={{ logo: "", title: "SquadronX" }}
-    >
-      <DashboardLayout
-        slots={{
-          // toolbarActions: ToolbarActionsSearch,
-          sidebarFooter: () => (
-            <SidebarFooter
-              session={session}
-              authentication={appAuthentication}
-            />
-          ),
+    <ThemeProvider theme={theme}>
+      <AppProvider
+        session={session}
+        authentication={appAuthentication}
+        navigation={NAVIGATION}
+        router={router}
+        theme={demoTheme}
+        branding={{
+          logo: "", // Make sure this file exists in your public/assets
+          title: "SquadronX",
+          titleStyle: {
+            // Corrected to titleStyle
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            width: "100%",
+            textAlign: "center",
+          },
         }}
-        // slotProps={{
-        //   toolbarAccount: a.currentUser
-        //     ? {
-        //         avatar: {
-        //           src: `http://localhost:8000/img/users/${session.user.image}`,
-        //         },
-        //         slotProps: {
-        //           popover: { open: false, sx: { display: "block" } },
-        //           signOutButton: { sx: { display: "block" } },
-        //         },
-        //       }
-        //     : {
-        //         slotProps: {
-        //           popover: { open: false, sx: { display: "none" } },
-        //           signOutButton: { sx: { display: "none" } },
-        //         },
-        //       },
-        // }}
-        disableCollapsibleSidebar={true}
       >
-        <PageContainer>{renderPage()}</PageContainer>
-      </DashboardLayout>
-    </AppProvider>
+        <DashboardLayout
+          slots={{
+            sidebarFooter: () => (
+              <SidebarFooter
+                session={session}
+                authentication={appAuthentication}
+              />
+            ),
+          }}
+          disableCollapsibleSidebar
+        >
+          <PageContainer>
+            <IconButton
+              onClick={toggleDarkMode} // Toggle dark mode
+              color="primary"
+              sx={{
+                position: "absolute",
+                top: 10,
+                right: 10,
+                zIndex: 10,
+              }}
+            >
+              <Brightness4Icon />
+            </IconButton>
+            {renderPage()}
+          </PageContainer>
+        </DashboardLayout>
+      </AppProvider>
+    </ThemeProvider>
   );
 }
