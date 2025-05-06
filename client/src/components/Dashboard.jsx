@@ -258,9 +258,6 @@ export default function DashboardLayoutBasic() {
         secondary: darkMode ? "#8b949e" : "#555555",
       },
     },
-  });
-
-  const demoTheme = createTheme({
     cssVariables: {
       colorSchemeSelector: "data-toolpad-color-scheme",
     },
@@ -285,7 +282,7 @@ export default function DashboardLayoutBasic() {
         authentication={appAuthentication}
         navigation={NAVIGATION}
         router={router}
-        theme={demoTheme}
+        theme={theme}
         branding={{
           logo: "", // Make sure this file exists in your public/assets
           title: "SquadronX",
