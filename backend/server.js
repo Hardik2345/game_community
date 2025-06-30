@@ -36,7 +36,7 @@ chatSocket(io);
 
 const port = process.env.PORT || 3000;
 server.listen(port, () => {
-  console.log("App running on port 3000....");
+  console.log(`App running on port ${port}`);
 });
 
 process.on("unhandledRejection", (err) => {

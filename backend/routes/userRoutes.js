@@ -25,6 +25,10 @@ const router = express.Router();
  *                 type: string
  *               passwordConfirm:
  *                 type: string
+ *               riotTag:
+ *                 type: string
+ *               riotUsername:
+ *                 type: string
  *     responses:
  *       201:
  *         description: User created successfully
@@ -129,7 +133,55 @@ router.patch("/resetPassword/:token", authController.resetPassword);
  */
 router.get("/users", userController.getAllUsers);
 
-// Protect all routes after this middleware
+/**
+ * @swagger
+ * /users/auth/steam:
+ *   get:
+ *     summary: Authenticate with Steam
+ *     tags: [Users]
+ *     responses:
+ *       302:
+ *         description: Redirects to Steam login page
+ */
+router.get("/auth/steam", authController.steamAuth);
+
+/**
+ * @swagger
+ * /users/auth/steam/return:
+ *   get:
+ *     summary: Steam authentication callback
+ *     tags: [Users]
+ *     responses:
+ *       302:
+ *         description: Redirects to frontend after authentication
+ */
+router.get("/auth/steam/return", authController.steamCallback);
+
+/**
+ * @swagger
+ * /users/auth/google:
+ *   get:
+ *     summary: Authenticate with Google
+ *     tags: [Users]
+ *     responses:
+ *       302:
+ *         description: Redirects to Google login page
+ */
+router.get("/auth/google", authController.googleAuth);
+
+/**
+ * @swagger
+ * /users/auth/google/return:
+ *   get:
+ *     summary: Google authentication callback
+ *     tags: [Users]
+ *     responses:
+ *       302:
+ *         description: Redirects to frontend after authentication
+ */
+router.get("/auth/google/return", authController.googleCallback);
+
+// Protect all routes after this middleware using Passport
 router.use(authController.protect);
 
 /**
@@ -212,98 +264,38 @@ router.patch(
  */
 router.delete("/deleteMe", userController.deleteMe);
 
-router.use(authController.restrictTo("admin"));
-
 /**
  * @swagger
- * /users/:
- *   get:
- *     summary: Get all users (admin only)
+ * /users/link-steam:
+ *   post:
+ *     summary: Link Steam account to current user
  *     tags: [Users]
  *     responses:
  *       200:
- *         description: List of users
- *   post:
- *     summary: Create a new user (admin only)
- *     tags: [Users]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               email:
- *                 type: string
- *               password:
- *                 type: string
- *               passwordConfirm:
- *                 type: string
- *     responses:
- *       201:
- *         description: User created successfully
+ *         description: Steam account linked successfully
  */
+router.post("/link-steam", authController.linkSteamAccount);
+
+/**
+ * @swagger
+ * /users/unlink-steam:
+ *   delete:
+ *     summary: Unlink Steam account from current user
+ *     tags: [Users]
+ *     responses:
+ *       200:
+ *         description: Steam account unlinked successfully
+ */
+router.delete("/unlink-steam", authController.unlinkSteamAccount);
+
+// Admin only routes
+router.use(authController.restrictTo("admin"));
+
 router
   .route("/")
   .get(userController.getAllUsers)
   .post(userController.createUser);
 
-/**
- * @swagger
- * /users/{id}:
- *   get:
- *     summary: Get a user by ID (admin only)
- *     tags: [Users]
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: string
- *         required: true
- *         description: User ID
- *     responses:
- *       200:
- *         description: User data
- *   patch:
- *     summary: Update a user by ID (admin only)
- *     tags: [Users]
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: string
- *         required: true
- *         description: User ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               email:
- *                 type: string
- *     responses:
- *       200:
- *         description: User updated successfully
- *   delete:
- *     summary: Delete a user by ID (admin only)
- *     tags: [Users]
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: string
- *         required: true
- *         description: User ID
- *     responses:
- *       204:
- *         description: User deleted successfully
- */
 router
   .route("/:id")
   .get(userController.getUser)
