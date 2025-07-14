@@ -27,7 +27,8 @@
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.1.5",
     "react-virtuoso": "^4.12.5",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "uuidv4": "^6.2.13"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

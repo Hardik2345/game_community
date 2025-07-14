@@ -56,9 +56,12 @@ export default function ProfilePage({ currentUser }) {
       (async () => {
         try {
           const token = localStorage.getItem("token");
+          const axiosConfig = token
+            ? { headers: { Authorization: `Bearer ${token}` } }
+            : { withCredentials: true };
           const res = await axios.get(
             `http://localhost:8000/api/v1/gv/${currentUser.id}`,
-            { headers: { Authorization: `Bearer ${token}` } }
+            axiosConfig
           );
           setGv(res.data.data);
         } catch {
@@ -99,16 +102,26 @@ export default function ProfilePage({ currentUser }) {
     formData.append("email", email);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:8000/api/v1/users/updateMe", {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
+      let fetchConfig;
+      if (token) {
+        fetchConfig = {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        };
+      } else {
+        fetchConfig = {
+          method: "PATCH",
+          credentials: "include",
+          body: formData,
+        };
+      }
+      const res = await fetch("http://localhost:8000/api/v1/users/updateMe", fetchConfig);
       const data = await res.json();
       if (password && currentPassword) {
-        const res2 = await fetch(
-          "http://localhost:8000/api/v1/users/updateMyPassword",
-          {
+        let passConfig;
+        if (token) {
+          passConfig = {
             method: "PATCH",
             headers: {
               "Content-Type": "application/json",
@@ -119,7 +132,24 @@ export default function ProfilePage({ currentUser }) {
               password,
               passwordConfirm: confirmPassword,
             }),
-          }
+          };
+        } else {
+          passConfig = {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              passwordCurrent: currentPassword,
+              password,
+              passwordConfirm: confirmPassword,
+            }),
+          };
+        }
+        const res2 = await fetch(
+          "http://localhost:8000/api/v1/users/updateMyPassword",
+          passConfig
         );
         const pd = await res2.json();
         if (pd.status !== "success")

@@ -42,7 +42,7 @@ router
   .route("/")
   .get(eventController.getAllEvents)
   .post(
-    authController.protect,
+    authController.dynamicProtect,
     authController.restrictTo("admin", "leader", "user"),
     eventController.uploadEventImages,
     eventController.resizeEventImages,
@@ -74,7 +74,7 @@ router
  */
 router
   .route("/add-member")
-  .patch(authController.protect, eventController.addMemberToEvent);
+  .patch(authController.dynamicProtect, eventController.addMemberToEvent);
 
 /**
  * @swagger
@@ -143,14 +143,14 @@ router
   .route("/:id")
   .get(eventController.getEvent)
   .patch(
-    authController.protect,
+    authController.dynamicProtect,
     authController.restrictTo("admin", "leader", "user"),
     eventController.uploadEventImages,
     eventController.resizeEventImages,
     eventController.updateEvent
   )
   .delete(
-    authController.protect,
+    authController.dynamicProtect,
     authController.restrictTo("admin", "leader", "user"),
     eventController.deleteEvent
   );
@@ -176,7 +176,7 @@ router
  */
 router.get(
   "/checkout-session/:eventId",
-  authController.protect,
+  authController.dynamicProtect,
   eventController.getCheckoutSession
 );
 

@@ -187,7 +187,7 @@ export default function GameChatPage({ currentUser }) {
                 sx={{
                   display: "flex",
                   justifyContent:
-                    msg.sender.name === currentUser.name
+                    msg.sender?.name === currentUser.name
                       ? "flex-end"
                       : "flex-start",
                   mb: 2,
@@ -197,11 +197,11 @@ export default function GameChatPage({ currentUser }) {
                   sx={{
                     p: 2,
                     backgroundColor:
-                      msg.sender.name === currentUser.name
+                      msg.sender?.name === currentUser.name
                         ? "#1976d2"
                         : "#f5f5f5",
                     color:
-                      msg.sender.name === currentUser.name
+                      msg.sender?.name === currentUser.name
                         ? "#ffffff"
                         : "#000000",
                     maxWidth: "70%",
@@ -210,7 +210,7 @@ export default function GameChatPage({ currentUser }) {
                 >
                   <Typography variant="body1">{msg.content}</Typography>
                   <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                    {msg.sender.name},{" "}
+                    {msg.sender?.name || 'Unknown'},{" "}
                     {new Date(msg.timestamp).toLocaleString("en-US", {
                       month: "short",
                       day: "numeric",

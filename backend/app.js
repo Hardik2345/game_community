@@ -21,7 +21,7 @@ const inviteRouter = require("./routes/inviteRoutes");
 const matchRouter = require("./routes/matchRoutes");
 const walletRouter = require("./routes/walletRoutes");
 const AppError = require("./utils/appError");
-const globalErrorHandler = require("./controllers/errorController");
+// const globalErrorHandler = require("./controllers/errorController");
 const scheduleGVHourlyUpdate = require("./utils/gvScheduler");
 
 const app = express();
@@ -62,10 +62,10 @@ app.use(cookieParser());
 app.use(compression());
 
 app.use((req, res, next) => {
-  if (req.originalUrl.startsWith('/api/v1/users/auth/steam') || req.originalUrl.startsWith('/api/v1/users/auth/google')) {
-    console.log('Bypassing session for Steam/Google routes');
-    return next();
-  }
+  // if (req.originalUrl.startsWith('/api/v1/users/auth/steam') || req.originalUrl.startsWith('/api/v1/users/auth/google')) {
+  //   console.log('Bypassing session for Steam/Google routes');
+  //   return next();
+  // }
   session({
     secret: process.env.SESSION_SECRET || "your-session-secret",
     resave: false,
@@ -86,6 +86,7 @@ app.use((req, res, next) => {
 });
 
 app.use(passport.initialize());
+app.use(passport.session());
 
 require("./swagger")(app);
 
@@ -105,6 +106,6 @@ app.all("*", (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
 
-app.use(globalErrorHandler);
+// app.use(globalErrorHandler);
 
 module.exports = app;

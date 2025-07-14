@@ -89,11 +89,11 @@ const TeamChatPage = ({ currentUser }) => {
 
   const fetchMessages = async (teamId) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/chats/${teamId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+      const token = localStorage.getItem("token");
+      const axiosConfig = token
+        ? { headers: { Authorization: `Bearer ${token}` } }
+        : { withCredentials: true };
+      const response = await axios.get(`${API_BASE_URL}/chats/${teamId}`, axiosConfig);
       setMessages(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Error fetching messages", error);

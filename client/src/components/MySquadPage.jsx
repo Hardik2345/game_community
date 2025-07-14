@@ -58,11 +58,12 @@ export default function MySquadPage() {
     if (a.currentUser) {
       try {
         const token = localStorage.getItem("token");
+        const axiosConfig = token
+          ? { headers: { Authorization: `Bearer ${token}` } }
+          : { withCredentials: true };
         const response = await axios.get(
           "http://localhost:8000/api/v1/invites",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+          axiosConfig
         );
         // Only pending invites are returned from the backend
         setInvites(response.data.data || []);
@@ -95,9 +96,10 @@ export default function MySquadPage() {
   const handleCreateSquad = async () => {
     try {
       const token = localStorage.getItem("token");
-      const userRes = await axios.get("http://localhost:8000/api/v1/users/me", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const axiosConfig = token
+        ? { headers: { Authorization: `Bearer ${token}` } }
+        : { withCredentials: true };
+      const userRes = await axios.get("http://localhost:8000/api/v1/users/me", axiosConfig);
       const userData = userRes?.data?.data?.data;
       const newSquad = {
         name: newSquadName,
@@ -106,10 +108,7 @@ export default function MySquadPage() {
         members: [userData._id],
         createdBy: userData._id,
       };
-
-      await axios.post("http://localhost:8000/api/v1/teams", newSquad, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.post("http://localhost:8000/api/v1/teams", newSquad, axiosConfig);
       setSnackbar({
         open: true,
         message: "Team created successfully!",
@@ -142,21 +141,21 @@ export default function MySquadPage() {
   const handleAcceptInvite = async (invite) => {
     try {
       const token = localStorage.getItem("token");
+      const axiosConfig = token
+        ? { headers: { Authorization: `Bearer ${token}` } }
+        : { withCredentials: true };
       // 1. Accept the invite (update its status to accepted)
       await axios.patch(
         `http://localhost:8000/api/v1/invites/${invite._id}/accept`,
         {},
-        { headers: { Authorization: `Bearer ${token}` } }
+        axiosConfig
       );
       // Remove the invite from state
       setInvites((prevInvites) =>
         prevInvites.filter((i) => i._id !== invite._id)
       );
-
       // 2. Fetch all teams and locate the team matching the invite's squadName
-      const teamsRes = await axios.get("http://localhost:8000/api/v1/teams", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const teamsRes = await axios.get("http://localhost:8000/api/v1/teams", axiosConfig);
       let teams = [];
       if (Array.isArray(teamsRes.data.data)) {
         teams = teamsRes.data.data;
@@ -181,7 +180,7 @@ export default function MySquadPage() {
         await axios.patch(
           "http://localhost:8000/api/v1/teams/add-member",
           { teamId: teamToJoin._id, memberId: a.currentUser.id },
-          { headers: { Authorization: `Bearer ${token}` } }
+          axiosConfig
         );
         // 6. Immediately update the local squads state so the joined team appears in the "Joined Squads" tab.
         a.setSquads((prevSquads) => {
@@ -221,10 +220,13 @@ export default function MySquadPage() {
   const handleDeclineInvite = async (inviteId) => {
     try {
       const token = localStorage.getItem("token");
+      const axiosConfig = token
+        ? { headers: { Authorization: `Bearer ${token}` } }
+        : { withCredentials: true };
       await axios.patch(
         `http://localhost:8000/api/v1/invites/${inviteId}/decline`,
         {},
-        { headers: { Authorization: `Bearer ${token}` } }
+        axiosConfig
       );
       setInvites((prevInvites) =>
         prevInvites.filter((invite) => invite._id !== inviteId)

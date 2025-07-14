@@ -25,8 +25,6 @@ exports.uploadEventImages = upload.fields([
   { name: "imageCover", maxCount: 1 },
 ]);
 
-console.log("uploadEventImages middleware triggered");
-
 exports.resizeEventImages = catchAsync(async (req, res, next) => {
   if (!req.files || !req.files.imageCover) return next();
   if (!req.files.imageCover) return next();

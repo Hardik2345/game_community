@@ -181,18 +181,21 @@ export default function DashboardLayoutBasic() {
 
   const [darkMode, setDarkMode] = useState(true); // State to toggle light/dark mode
 
+  // Always fetch user on mount to sync session state
   React.useEffect(() => {
     a.fetchUser();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [a.currentUser?.photo]);
+  }, []);
 
   React.useEffect(() => {
-    if (a.currentUser) {
+    if (a.currentUser && a.currentUser.name) {
       setSession({
         user: {
           name: a.currentUser.name,
           email: a.currentUser.email,
-          image: `http://localhost:8000/img/users/${a.currentUser.photo}`,
+          image: a.currentUser.photo
+            ? `http://localhost:8000/img/users/${a.currentUser.photo}`
+            : "",
         },
       });
     } else {

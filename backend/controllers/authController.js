@@ -181,94 +181,40 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
   createSendToken(user, 200, req, res);
 });
 
-exports.steamAuth = passport.authenticate("steam", { session: false });
+exports.steamAuth = passport.authenticate("steam");
 
 exports.steamCallback = (req, res, next) => {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-  try {
-    passport.authenticate("steam", { session: false }, async (err, user, info) => {
-      console.log("entered passport.authenticate");
-      try {
-        if (err) {
-          console.error("Steam auth error:", err);
-          return res.redirect(
-            `${frontendUrl}/login?error=steam_auth_failed`
-          );
-        }
-        if (!user) {
-          console.error("No user returned from Steam auth", info);
-          return res.redirect(
-            `${frontendUrl}/login?error=steam_auth_failed`
-          );
-        }
-        const token = signToken(user._id);
-        res.cookie("jwt", token, {
-          expires: new Date(
-            Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
-          ),
-          httpOnly: true,
-          secure: false,
-          sameSite: "Lax",
-        });
-        console.log(`Steam authentication successful for user: ${user.name}`);
-        console.log(`Redirecting to: ${frontendUrl}/dashboard`);
-        return res.redirect(`${frontendUrl}/dashboard`);
-      } catch (error) {
-        console.error("Error in Steam callback:", error);
-        return res.redirect(
-          `${frontendUrl}/login?error=steam_auth_failed`
-        );
+  passport.authenticate("steam", (err, user, info) => {
+    if (err || !user) {
+      return res.redirect(`${frontendUrl}/login?error=steam_auth_failed`);
+    }
+    req.login(user, (err) => {
+      if (err) {
+        return res.redirect(`${frontendUrl}/login?error=steam_auth_failed`);
       }
-    })(req, res, next);
-  } catch (error) {
-    console.error("Error in passport.authenticate:", error);
-    res.status(500).send("Internal Server Error");
-  }
+      // Session is now established, redirect to dashboard
+      return res.redirect(`${frontendUrl}/dashboard`);
+    });
+  })(req, res, next);
 };
 
-exports.googleAuth = passport.authenticate("google", { session: false, scope: ['profile', 'email'] });
+exports.googleAuth = passport.authenticate("google", { scope: ['profile', 'email'] });
 
 exports.googleCallback = (req, res, next) => {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-  try {
-    passport.authenticate("google", { session: false }, async (err, user, info) => {
-      console.log("entered passport.authenticate for Google");
-      try {
-        if (err) {
-          console.error("Google auth error:", err);
-          return res.redirect(
-            `${frontendUrl}/login?error=google_auth_failed`
-          );
-        }
-        if (!user) {
-          console.error("No user returned from Google auth", info);
-          return res.redirect(
-            `${frontendUrl}/login?error=google_auth_failed`
-          );
-        }
-        const token = signToken(user._id);
-        res.cookie("jwt", token, {
-          expires: new Date(
-            Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
-          ),
-          httpOnly: true,
-          secure: false,
-          sameSite: "Lax",
-        });
-        console.log(`Google authentication successful for user: ${user.name}`);
-        console.log(`Redirecting to: ${frontendUrl}/dashboard`);
-        return res.redirect(`${frontendUrl}/dashboard`);
-      } catch (error) {
-        console.error("Error in Google callback:", error);
-        return res.redirect(
-          `${frontendUrl}/login?error=google_auth_failed`
-        );
+  passport.authenticate("google", (err, user, info) => {
+    if (err || !user) {
+      return res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
+    }
+    req.login(user, (err) => {
+      if (err) {
+        return res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
       }
-    })(req, res, next);
-  } catch (error) {
-    console.error("Error in passport.authenticate:", error);
-    res.status(500).send("Internal Server Error");
-  }
+      // Session is now established, redirect to dashboard
+      return res.redirect(`${frontendUrl}/dashboard`);
+    });
+  })(req, res, next);
 };
 
 exports.linkSteamAccount = catchAsync(async (req, res, next) => {
@@ -318,3 +264,18 @@ exports.unlinkSteamAccount = catchAsync(async (req, res, next) => {
     message: "Steam account unlinked successfully",
   });
 });
+
+// Dynamic protect middleware: session OR JWT
+exports.dynamicProtect = (req, res, next) => {
+  // If authenticated via session (Steam/Google)
+  if (req.isAuthenticated && req.isAuthenticated()) {
+    return next();
+  }
+  // Otherwise, try JWT
+  passport.authenticate("jwt", { session: false }, (err, user, info) => {
+    if (err) return next(err);
+    if (!user) return res.status(401).json({ status: "fail", message: "Not authenticated" });
+    req.user = user;
+    next();
+  })(req, res, next);
+};

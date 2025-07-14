@@ -1,6 +1,6 @@
 const express = require("express");
 const { getCachedMatches } = require("../controllers/matchController");
-const { protect } = require("../controllers/authController");
+const { dynamicProtect } = require("../controllers/authController");
 
 const router = express.Router();
 
@@ -16,6 +16,6 @@ const router = express.Router();
  *       200:
  *         description: List of cached matches
  */
-router.route("/cached").get(protect, getCachedMatches);
+router.route("/cached").get(dynamicProtect, getCachedMatches);
 
 module.exports = router;

@@ -26,10 +26,10 @@ const DB = process.env.DATABASE.replace(
 //Explicitly set the NODE_ENV for Express
 app.set("env", process.env.NODE_ENV);
 
-console.log("Enviroment:", process.env.NODE_ENV);
+console.log("Environment:", process.env.NODE_ENV);
 
 mongoose.connect(DB).then((con) => {
-  console.log("DB connection succesful!");
+  console.log("DB connection successful!");
 });
 
 chatSocket(io);
@@ -48,7 +48,7 @@ process.on("unhandledRejection", (err) => {
 });
 
 process.on("SIGTERM", () => {
-  console.log("SIGTERM RECIEVED. Shutting down gracefully");
+  console.log("SIGTERM RECEIVED. Shutting down gracefully");
   server.close(() => {
     console.log("Process terminated!");
   });

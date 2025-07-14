@@ -36,23 +36,25 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       const token = localStorage.getItem("token");
+      // Use JWT if present, otherwise use session (cookie)
+      const axiosConfig = token
+        ? { headers: { Authorization: `Bearer ${token}` } }
+        : { withCredentials: true };
+      console.log("Axios config:", axiosConfig);
       try {
         // Fetch wallet data
         const walletRes = await axios.get(
           "http://localhost:8000/api/v1/wallets/me",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+          axiosConfig
         );
         setWallet(walletRes.data.data);
 
         // Fetch match data
         const matchesRes = await axios.get(
           "http://localhost:8000/api/v1/dashboard/cached",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+          axiosConfig
         );
+        console.log("Fetched matches:", matchesRes);
         setMatchData(matchesRes.data.data);
       } catch (error) {
         console.error("Dashboard data load error:", error);

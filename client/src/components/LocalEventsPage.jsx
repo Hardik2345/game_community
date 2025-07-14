@@ -77,12 +77,10 @@ export default function LocalEventsPage({ currentUser }) {
     );
     if (imageFile) formData.append("imageCover", imageFile);
     try {
-      await axios.post("http://localhost:8000/api/v1/events", formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const axiosConfig = token
+        ? { headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" } }
+        : { withCredentials: true, headers: { "Content-Type": "multipart/form-data" } };
+      await axios.post("http://localhost:8000/api/v1/events", formData, axiosConfig);
       setSnackbar({
         open: true,
         message: "Event created successfully!",
@@ -109,24 +107,19 @@ export default function LocalEventsPage({ currentUser }) {
   };
   const handleProceedToPayment = async () => {
     try {
+      const token = localStorage.getItem("token");
+      const axiosConfig = token
+        ? { headers: { Authorization: `Bearer ${token}` } }
+        : { withCredentials: true };
       await axios.patch(
         `http://localhost:8000/api/v1/events/add-member`,
-        { gameId: selectedGame._id, members: currentUser.id }, // or eventId, based on your backend
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
+        { gameId: selectedGame._id, members: currentUser.id },
+        axiosConfig
       );
-
       // Call your express route
       const { data } = await axios.get(
         `http://localhost:8000/api/v1/events/checkout-session/${selectedGame._id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
+        axiosConfig
       );
 
       // Redirect the browser to Stripe Checkout

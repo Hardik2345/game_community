@@ -182,7 +182,7 @@ router.get("/auth/google", authController.googleAuth);
 router.get("/auth/google/return", authController.googleCallback);
 
 // Protect all routes after this middleware using Passport
-router.use(authController.protect);
+router.use(authController.dynamicProtect);
 
 /**
  * @swagger

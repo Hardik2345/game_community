@@ -8,12 +8,20 @@ const State = (props) => {
   const [squads, setSquads] = useState([]);
   const [games, setGames] = useState([]);
   const [userGames, setUserGames] = useState([]);
+
+  // Helper to get axios config for JWT or session
+  const getAuthConfig = () => {
+    const token = localStorage.getItem("token");
+    return token
+      ? { headers: { Authorization: `Bearer ${token}` } }
+      : { withCredentials: true };
+  };
+
   const fetchUserData = async () => {
     try {
-      const token = localStorage.getItem("token");
       const response = await axios.get(
         "http://localhost:8000/api/v1/users/me",
-        { headers: { Authorization: `Bearer ${token}` } }
+        getAuthConfig()
       );
       const userData = response?.data?.data?.data;
       const newUser = {
@@ -31,48 +39,42 @@ const State = (props) => {
   };
   const fetchUser = async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setCurrentUser(null);
-        throw new Error("No token present");
-      }
       const response = await axios.get(
-        `http://localhost:8000/api/v1/users/me`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        "http://localhost:8000/api/v1/users/me",
+        getAuthConfig()
       );
+      console.log("Response from fetchUser:", response);
       const userData = response?.data?.data?.data;
-      const newUser = {
-        id: userData._id,
-        name: userData.name,
-        email: userData.email,
-        photo: userData.photo,
-      };
-      setTeams(userData.team);
-
-      // Update state only if the user has changed
-      setCurrentUser((prevUser) =>
-        JSON.stringify(prevUser) !== JSON.stringify(newUser)
-          ? newUser
-          : prevUser
-      );
+      console.log("Fetched user data:", userData);
+      if (userData) {
+        const newUser = {
+          id: userData._id,
+          name: userData.name,
+          email: userData.email,
+          photo: userData.photo,
+        };
+        setTeams(userData.team);
+        setCurrentUser((prevUser) =>
+          JSON.stringify(prevUser) !== JSON.stringify(newUser)
+            ? newUser
+            : prevUser
+        );
+      } else {
+        setCurrentUser(null);
+      }
     } catch (error) {
+      setCurrentUser(null);
       console.error("Error fetching user", error);
     }
   };
   const fetchTeams = async () => {
     if (currentUser) {
       try {
-        const token = localStorage.getItem("token");
-        // Adjust endpoint as per your API route for fetching user teams
         const response = await axios.get(
           "http://localhost:8000/api/v1/users/me",
-          { headers: { Authorization: `Bearer ${token}` } }
+          getAuthConfig()
         );
-        // Assuming the returned data has a "teams" array
+        console.log("Response from fetchTeams:", response);
         setTeams(response.data?.data?.data?.team);
       } catch (error) {
         console.error("Error fetching teams:", error);
@@ -82,15 +84,12 @@ const State = (props) => {
   const fetchGames = async () => {
     if (currentUser) {
       try {
-        const token = localStorage.getItem("token");
-        // Adjust endpoint as per your API route for fetching user teams
         const response = await axios.get(
           "http://localhost:8000/api/v1/events",
-          { headers: { Authorization: `Bearer ${token}` } }
+          getAuthConfig()
         );
-        // Assuming the returned data has a "teams" array
+        console.log("Response from fetchGames:", response);
         setGames(response.data?.data?.data);
-        // setGames((prevGames) => [...prevGames, response.data?.data?.data]);
       } catch (error) {
         console.error("Error fetching teams:", error);
       }
@@ -99,15 +98,12 @@ const State = (props) => {
   const fetchGamesForUser = async () => {
     if (currentUser) {
       try {
-        const token = localStorage.getItem("token");
-        // Adjust endpoint as per your API route for fetching user teams
         const response = await axios.get(
           "http://localhost:8000/api/v1/users/me",
-          { headers: { Authorization: `Bearer ${token}` } }
+          getAuthConfig()
         );
-        // Assuming the returned data has a "teams" array
+        console.log("Response from fetchGamesForUser:", response);
         setUserGames(response.data?.data?.data?.event);
-        // setGames((prevGames) => [...prevGames, response.data?.data?.data]);
       } catch (error) {
         console.error("Error fetching teams:", error);
       }

@@ -1,5 +1,5 @@
 const express = require("express");
-const { protect } = require("../controllers/authController");
+const { dynamicProtect } = require("../controllers/authController");
 const {
   getMyWallet,
   rewardMyWalletFromWins,
@@ -19,7 +19,7 @@ const router = express.Router();
  *       200:
  *         description: Wallet data
  */
-router.get("/me", protect, getMyWallet);
+router.get("/me", dynamicProtect, getMyWallet);
 
 /**
  * @swagger
@@ -33,6 +33,6 @@ router.get("/me", protect, getMyWallet);
  *       200:
  *         description: Wallet rewarded
  */
-router.post("/reward", protect, rewardMyWalletFromWins);
+router.post("/reward", dynamicProtect, rewardMyWalletFromWins);
 
 module.exports = router;

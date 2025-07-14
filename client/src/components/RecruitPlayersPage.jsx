@@ -71,24 +71,26 @@ export default function RecruitPlayersPage({ currentUser }) {
       const updatedPlayers = await Promise.all(
         allUsers.map(async (user) => {
           const isOnline = onlineUserIds.includes(user._id.toString());
-
           let stats = {
             winPercentage: "--",
             kdaRatio: "--",
             matchesPlayed: "--",
             rating: "--",
           };
-
           try {
+            const token = localStorage.getItem("token");
+            const axiosConfig = token
+              ? { headers: { Authorization: `Bearer ${token}` } }
+              : { withCredentials: true };
             const res = await axios.get(
-              `http://localhost:8000/api/v1/gv/${user._id}`
+              `http://localhost:8000/api/v1/gv/${user._id}`,
+              axiosConfig
             );
             stats = res.data.data || stats;
           } catch (error) {
             console.warn(`No GV found for ${user.name}`);
             console.error("Error💥💥: ", error);
           }
-
           return {
             ...user,
             isOnline,
@@ -98,7 +100,6 @@ export default function RecruitPlayersPage({ currentUser }) {
           };
         })
       );
-
       setPlayers(updatedPlayers);
     });
 
@@ -125,19 +126,18 @@ export default function RecruitPlayersPage({ currentUser }) {
     if (!selectedTeam || !selectedPlayer) return;
     try {
       const token = localStorage.getItem("token");
-      // Adjust the payload as per your invite API requirements.
-      // Here we assume squadName holds the team identifier or name.
+      const axiosConfig = token
+        ? { headers: { Authorization: `Bearer ${token}` } }
+        : { withCredentials: true };
       await axios.post(
         "http://localhost:8000/api/v1/invites",
         {
-          squadName: selectedTeam,
-          sender: currentUser.id,
-          receiver: selectedPlayer._id,
+          teamId: selectedTeam,
+          userId: selectedPlayer._id,
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        axiosConfig
       );
-      // Optionally, display a success notification here.
-      handleDialogClose();
+      setDialogOpen(false);
     } catch (error) {
       console.error("Error sending invite:", error);
     }
