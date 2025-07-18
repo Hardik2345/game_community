@@ -1,8 +1,11 @@
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const http = require("http");
-const SocketIO = require("socket.io");
 const chatSocket = require("./socket/socket");
+const Redis = require("ioredis");
+const { Server } = require("socket.io"); // Use Server from socket.io
+const { createAdapter } = require("@socket.io/redis-adapter");
+const { Queue } = require("bullmq");
 
 process.on("uncaughtException", (err) => {
   console.log("Unhandled exception! 💥 shutting down....");
@@ -13,10 +16,21 @@ process.on("uncaughtException", (err) => {
 dotenv.config({ path: "./config.env" });
 const app = require("./app");
 const server = http.createServer(app);
-const io = SocketIO(server, {
+const io = new Server(server, { // Changed from SocketIO(server, ...)
   cors: { origin: "*" },
-  transports: ["websocket"], // Force WebSockets, disable polling
+  transports: ["websocket"],
 });
+const redisConnection = new Redis({
+  host: "127.0.0.1",
+  port: 6379,
+  maxRetriesPerRequest: null // Important for adapter and bullmq
+});
+
+// 1. Create the BullMQ queue instance
+const chatQueue = new Queue('chat-messages', { connection: redisConnection.duplicate() });
+
+// 2. Configure the Socket.IO adapter to use Redis
+io.adapter(createAdapter(redisConnection, redisConnection.duplicate()));
 
 const DB = process.env.DATABASE.replace(
   "<PASSWORD>",
@@ -32,7 +46,7 @@ mongoose.connect(DB).then((con) => {
   console.log("DB connection successful!");
 });
 
-chatSocket(io);
+chatSocket(io, chatQueue);
 
 const port = process.env.PORT || 3000;
 server.listen(port, () => {

@@ -17,7 +17,7 @@ import {
 } from "@mui/material";
 import { Send as SendIcon } from "@mui/icons-material";
 import FiberManualRecord from "@mui/icons-material/FiberManualRecord";
-import { useState, useContext, useEffect, useRef } from "react";
+import { useState, useContext, useEffect, useRef, useMemo } from "react"; // 👇 NEW: Import useMemo
 import { styled } from "@mui/material/styles";
 import context from "../context/context";
 import io from "socket.io-client";
@@ -26,6 +26,7 @@ import axios from "axios";
 const API_BASE_URL = "http://localhost:8000/api/v1";
 const socket = io("http://localhost:8000", { transports: ["websocket"] });
 
+// ... Styled components (ChatContainer, MessageArea, InputArea) are unchanged ...
 const ChatContainer = styled(Paper)(({ theme }) => ({
   height: "calc(100vh - 100px)",
   margin: theme.spacing(1),
@@ -51,18 +52,18 @@ export default function GameChatPage({ currentUser }) {
   const [messages, setMessages] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
   const messageEndRef = useRef(null);
+  
+  // 👇 NEW: State and Ref for typing indicator
+  const [typingUsers, setTypingUsers] = useState({});
+  const typingTimerRef = useRef(null);
 
   useEffect(() => {
     if (currentUser) a.fetchGamesForUser();
-    console.log(a.games);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [currentUser]);
 
   useEffect(() => {
     const handleNewMessage = (newMessage) => {
-      if (!newMessage.sender || !newMessage.sender.name) {
-        console.error("Received message without sender info:", newMessage);
-      }
       setMessages((prev) => [...prev, newMessage]);
     };
 
@@ -70,34 +71,58 @@ export default function GameChatPage({ currentUser }) {
       setOnlineUsers(users);
     };
 
+    // 👇 NEW: Handlers for typing events
+    const handleUserTypingStarted = ({ user }) => {
+      if (user._id !== currentUser.id) {
+        setTypingUsers((prev) => ({ ...prev, [user._id]: user }));
+      }
+    };
+    
+    const handleUserTypingStopped = ({ user }) => {
+      setTypingUsers((prev) => {
+        const newTyping = { ...prev };
+        delete newTyping[user._id];
+        return newTyping;
+      });
+    };
+
     socket.on("receiveMessage", handleNewMessage);
     socket.on("updateOnlineUsers", handleOnlineUsers);
+    
+    // 👇 NEW: Subscribe to typing events
+    socket.on("user-typing-started", handleUserTypingStarted);
+    socket.on("user-typing-stopped", handleUserTypingStopped);
 
     return () => {
       socket.off("receiveMessage", handleNewMessage);
       socket.off("updateOnlineUsers", handleOnlineUsers);
+      
+      // 👇 NEW: Unsubscribe from typing events on cleanup
+      socket.off("user-typing-started", handleUserTypingStarted);
+      socket.off("user-typing-stopped", handleUserTypingStopped);
     };
-  }, []);
+  }, [currentUser.id]); // Add currentUser.id to dependency array
+
   useEffect(() => {
     if (currentGame) {
-      // Optionally notify the server about leaving previous room (if applicable)
-      // socket.emit("leaveTeamChat", { teamId: previousTeamId, userId: currentUser.id });
       fetchMessages(currentGame);
       socket.emit("joinGameChat", {
         gameId: currentGame,
         userId: currentUser.id,
       });
     }
-  }, [currentGame, currentUser]);
+  }, [currentGame, currentUser]); // currentUser already here, no change needed
 
   const fetchMessages = async (gameId) => {
+    // ... no changes to this function ...
+    const getAuthConfig = () => {
+      const token = localStorage.getItem("token");
+      return token
+        ? { headers: { Authorization: `Bearer ${token}` } }
+        : { withCredentials: true };
+    };
     try {
-      const response = await axios.get(`${API_BASE_URL}/chats/game/${gameId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      console.log(response);
+      const response = await axios.get(`${API_BASE_URL}/chats/game/${gameId}`, getAuthConfig());
       setMessages(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Error fetching messages", error);
@@ -106,22 +131,46 @@ export default function GameChatPage({ currentUser }) {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!message.trim()) return;
-    try {
-      socket.emit("send", {
-        gameId: currentGame,
-        sender: currentUser.id,
-        message,
-      });
-      setMessage("");
-    } catch (error) {
-      console.error("Error sending message", error);
-    }
+    if (!message.trim() || !currentGame) return;
+
+    // 👇 NEW: Stop typing when message is sent
+    clearTimeout(typingTimerRef.current);
+    socket.emit("stop-typing", { roomId: currentGame, user: currentUser });
+
+    socket.emit("send", {
+      gameId: currentGame,
+      sender: currentUser.id,
+      message,
+    });
+    setMessage("");
   };
+
+  // 👇 NEW: Handler for input change to emit typing events
+  const handleInputChange = (e) => {
+    setMessage(e.target.value);
+
+    // Emit start-typing and set a timer to emit stop-typing
+    socket.emit("start-typing", { roomId: currentGame, user: currentUser });
+
+    clearTimeout(typingTimerRef.current);
+    typingTimerRef.current = setTimeout(() => {
+      socket.emit("stop-typing", { roomId: currentGame, user: currentUser });
+    }, 3000); // 3 seconds
+  };
+  
+  // 👇 NEW: useMemo to calculate the typing indicator text efficiently
+  const typingIndicatorText = useMemo(() => {
+    const names = Object.values(typingUsers).map(u => u.name);
+    if (names.length === 0) return "";
+    if (names.length === 1) return `${names[0]} is typing...`;
+    if (names.length === 2) return `${names[0]} and ${names[1]} are typing...`;
+    return "Several people are typing...";
+  }, [typingUsers]);
 
   return (
     <Grid container spacing={0}>
       <Grid item xs={3}>
+        {/* ... User List Panel (no changes) ... */}
         <Paper
           sx={{ height: "calc(100vh - 100px)", margin: 1, overflow: "auto" }}
         >
@@ -181,6 +230,7 @@ export default function GameChatPage({ currentUser }) {
           </Box>
 
           <MessageArea>
+            {/* ... Messages mapping (no changes) ... */}
             {messages.map((msg, index) => (
               <Box
                 key={index}
@@ -224,6 +274,11 @@ export default function GameChatPage({ currentUser }) {
             ))}
             <div ref={messageEndRef} />
           </MessageArea>
+          
+          {/* 👇 NEW: Typing Indicator UI */}
+          <Box sx={{ height: '24px', px: 2, fontStyle: 'italic', color: 'text.secondary' }}>
+            <Typography variant="caption">{typingIndicatorText}</Typography>
+          </Box>
 
           <InputArea>
             <form onSubmit={handleSendMessage}>
@@ -233,13 +288,14 @@ export default function GameChatPage({ currentUser }) {
                   variant="outlined"
                   placeholder="Type a message..."
                   value={message}
-                  onChange={(e) => setMessage(e.target.value)}
+                  onChange={handleInputChange} // MODIFIED: Use the new handler
                   size="small"
+                  disabled={!currentGame} // MODIFIED: Disable input if no room is selected
                 />
                 <IconButton
                   type="submit"
                   color="primary"
-                  disabled={!message.trim()}
+                  disabled={!message.trim() || !currentGame}
                 >
                   <SendIcon />
                 </IconButton>

@@ -28,7 +28,7 @@ const router = express.Router();
  *       201:
  *         description: Message created
  */
-router.route("/").post(authController.protect, messageController.createMessage);
+router.route("/").post(authController.dynamicProtect, messageController.createMessage);
 
 /**
  * @swagger
@@ -49,7 +49,7 @@ router.route("/").post(authController.protect, messageController.createMessage);
  *       200:
  *         description: List of messages
  */
-router.get("/:teamId", authController.protect, chatController.getTeamMessages);
+router.get("/:teamId", authController.dynamicProtect, chatController.getTeamMessages);
 
 /**
  * @swagger
@@ -72,7 +72,7 @@ router.get("/:teamId", authController.protect, chatController.getTeamMessages);
  */
 router.get(
   "/game/:gameId",
-  authController.protect,
+  authController.dynamicProtect,
   chatController.getGameMessages
 );
 

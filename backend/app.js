@@ -61,6 +61,17 @@ app.use(cookieParser());
 
 app.use(compression());
 
+const mongoUrl = process.env.DATABASE.replace(
+  "<PASSWORD>",
+  process.env.DATABASE_PASSWORD
+);
+
+const sessionStore = MongoStore.create({
+  mongoUrl: mongoUrl,
+  collectionName: "sessions", // It's good practice to name the collection
+  touchAfter: 24 * 3600, // 24 hours
+});
+
 app.use((req, res, next) => {
   // if (req.originalUrl.startsWith('/api/v1/users/auth/steam') || req.originalUrl.startsWith('/api/v1/users/auth/google')) {
   //   console.log('Bypassing session for Steam/Google routes');
@@ -70,13 +81,7 @@ app.use((req, res, next) => {
     secret: process.env.SESSION_SECRET || "your-session-secret",
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({
-      mongoUrl: process.env.DATABASE.replace(
-        "<PASSWORD>",
-        process.env.DATABASE_PASSWORD
-      ),
-      touchAfter: 24 * 3600,
-    }),
+    store: sessionStore,
     cookie: {
       secure: false,
       httpOnly: true,

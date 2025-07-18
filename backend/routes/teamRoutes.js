@@ -39,8 +39,8 @@ const router = express.Router();
  */
 router
   .route("/")
-  .get(authController.protect, teamController.getAllTeams)
-  .post(authController.protect, teamController.createTeam);
+  .get(authController.dynamicProtect, teamController.getAllTeams)
+  .post(authController.dynamicProtect, teamController.createTeam);
 
 /**
  * @swagger
@@ -67,6 +67,6 @@ router
  */
 router
   .route("/add-member")
-  .patch(authController.protect, teamController.addMemberToTeam);
+  .patch(authController.dynamicProtect, teamController.addMemberToTeam);
 
 module.exports = router;

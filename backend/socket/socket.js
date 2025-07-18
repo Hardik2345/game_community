@@ -6,7 +6,7 @@ const { encrypt } = require("./../utils/encryption");
 // but for team chats we will use room membership.
 const onlineRecruitUsers = {}; // For recruitPlayers only: { userId: socket.id }
 
-module.exports = function chatSocket(io) {
+module.exports = function chatSocket(io,chatQueue) {
   // Helper function to update online users for a given room (team chat)
   async function updateRoomOnlineUsers(room) {
     // io.sockets.adapter.rooms is a Map in Socket.IO v3+
@@ -80,23 +80,17 @@ module.exports = function chatSocket(io) {
 
     socket.on("send", async ({ gameId, sender, message }) => {
       if (!gameId || !sender || !message) return;
-      const { encryptedData, iv } = encrypt(message);
-      try {
-        let newMessage = await Message.create({
-          gameId,
-          sender,
-          content: encryptedData,
-          iv,
-        });
-        newMessage = await newMessage.populate("sender", "name email avatar");
-        io.to(gameId).emit("receiveMessage", {
-          ...newMessage._doc,
-          content: message,
-        });
-      } catch (error) {
-        console.error("Error saving message:", error);
-      }
+      
+      // Add a job to the queue instead of processing it here
+      await chatQueue.add("new-message", {
+        gameId,
+        sender,
+        message,
+      });
+
+      // socket.emit('message-ack', { tempId, status: 'sent' });
     });
+
 
     // --- Recruit Players Event ---
     socket.on("joinRecruitPlayers", async ({ userId }) => {
@@ -117,24 +111,27 @@ module.exports = function chatSocket(io) {
     });
 
     // --- Send Message Event ---
-    socket.on("sendMessage", async ({ teamId, sender, message }) => {
+    socket.on("sendMessage", async ({ teamId, sender, message,tempId }) => {
       if (!teamId || !sender || !message) return;
-      const { encryptedData, iv } = encrypt(message);
-      try {
-        let newMessage = await Message.create({
-          teamId,
-          sender,
-          content: encryptedData,
-          iv,
-        });
-        newMessage = await newMessage.populate("sender", "name email avatar");
-        io.to(teamId).emit("receiveMessage", {
-          ...newMessage._doc,
-          content: message,
-        });
-      } catch (error) {
-        console.error("Error saving message:", error);
-      }
+      
+      // Add a job to the queue instead of processing it here
+      await chatQueue.add("new-message", {
+        teamId,
+        sender,
+        message,
+      });
+
+      // socket.emit('message-ack', { tempId, status: 'sent' });
+    });
+
+     // 👇 --- NEW: TYPING INDICATOR EVENTS --- 👇
+    socket.on('start-typing', ({ roomId, user }) => {
+      // Broadcast to everyone in the room EXCEPT the sender
+      socket.broadcast.to(roomId).emit('user-typing-started', { user });
+    });
+    socket.on('stop-typing', ({ roomId, user }) => {
+      // Broadcast to everyone in the room EXCEPT the sender
+      socket.broadcast.to(roomId).emit('user-typing-stopped', { user });
     });
 
     // --- Disconnect Event ---
