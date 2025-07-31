@@ -1,6 +1,6 @@
 const express = require("express");
 const teamController = require("./../controllers/teamControllers");
-const authController = require("./../controllers/authController");
+// const authController = require("./../controllers/authController");
 
 const router = express.Router();
 
@@ -39,8 +39,8 @@ const router = express.Router();
  */
 router
   .route("/")
-  .get(authController.dynamicProtect, teamController.getAllTeams)
-  .post(authController.dynamicProtect, teamController.createTeam);
+  .get( teamController.getAllTeams)
+  .post( teamController.createTeam);
 
 /**
  * @swagger
@@ -67,6 +67,6 @@ router
  */
 router
   .route("/add-member")
-  .patch(authController.dynamicProtect, teamController.addMemberToTeam);
+  .patch( teamController.addMemberToTeam);
 
 module.exports = router;

@@ -1,6 +1,4 @@
-const catchAsync = require("./../utils/catchAsync");
 const factory = require("./handlerFactory");
-const AppError = require("./../utils/appError");
 const Message = require("./../models/messageModel");
 
 exports.getAllMessages = factory.getAll(Message);

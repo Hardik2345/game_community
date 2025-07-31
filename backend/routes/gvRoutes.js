@@ -1,5 +1,4 @@
 const express = require("express");
-const { protect } = require("../controllers/authController");
 const { updateGV, getGV } = require("../controllers/gvController");
 
 const router = express.Router();
@@ -25,7 +24,7 @@ const router = express.Router();
  *       200:
  *         description: GV updated
  */
-router.route("/update-my-gv").post(protect, updateGV);
+router.route("/update-my-gv").post(updateGV);
 
 /**
  * @swagger

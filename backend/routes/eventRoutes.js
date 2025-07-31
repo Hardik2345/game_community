@@ -1,6 +1,6 @@
 const express = require("express");
 const eventController = require("./../controllers/eventController");
-const authController = require("./../controllers/authController");
+// const authController = require("./../controllers/authController");
 
 const router = express.Router();
 
@@ -42,8 +42,6 @@ router
   .route("/")
   .get(eventController.getAllEvents)
   .post(
-    authController.dynamicProtect,
-    authController.restrictTo("admin", "leader", "user"),
     eventController.uploadEventImages,
     eventController.resizeEventImages,
     eventController.createEvent
@@ -74,7 +72,7 @@ router
  */
 router
   .route("/add-member")
-  .patch(authController.dynamicProtect, eventController.addMemberToEvent);
+  .patch( eventController.addMemberToEvent);
 
 /**
  * @swagger
@@ -142,16 +140,12 @@ router
 router
   .route("/:id")
   .get(eventController.getEvent)
-  .patch(
-    authController.dynamicProtect,
-    authController.restrictTo("admin", "leader", "user"),
+  .patch(  
     eventController.uploadEventImages,
     eventController.resizeEventImages,
     eventController.updateEvent
   )
   .delete(
-    authController.dynamicProtect,
-    authController.restrictTo("admin", "leader", "user"),
     eventController.deleteEvent
   );
 
@@ -175,8 +169,7 @@ router
  *         description: Stripe checkout session URL
  */
 router.get(
-  "/checkout-session/:eventId",
-  authController.dynamicProtect,
+  "/checkout-session/:eventId", 
   eventController.getCheckoutSession
 );
 

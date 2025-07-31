@@ -7,7 +7,6 @@ const dotenv = require("dotenv");
 
 // Load models and utils
 const Message = require("./models/messageModel");
-const User = require("./models/userModel"); 
 const { encrypt } = require("./utils/encryption");
 
 // Load environment variables

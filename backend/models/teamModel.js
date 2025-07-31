@@ -1,6 +1,8 @@
 const mongoose = require("mongoose");
 const User = require("./userModel");
 
+const { publishEvent } = require('../eventPublisher');
+
 const teamSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
   members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
@@ -11,8 +13,21 @@ const teamSchema = new mongoose.Schema({
 });
 
 teamSchema.pre(/^find/, function (next) {
-  this.populate("members", "name email photo"); // Fetch selected fields
+  this.populate("members", "name photo"); // Fetch selected fields
   next();
+});
+
+teamSchema.pre('save', async function () {
+    if (this.isNew || this.isModified('name')) {
+        try {
+            const eventData = { teamId: this._id, name: this.name };
+            // You will need to import or have access to your publishEvent function
+            await publishEvent('TeamUpdated', eventData);
+            console.log(`--- TeamUpdated event published for: ${this.name} ---`);
+        } catch (err) {
+            console.error("❌ Failed to publish TeamUpdated event:", err.message);
+        }
+    }
 });
 
 teamSchema.post("save", async function (doc, next) {

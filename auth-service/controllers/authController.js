@@ -41,6 +41,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     passwordConfirm: req.body.passwordConfirm,
     riotTag: req.body.riotTag,
     riotUsername: req.body.riotUsername,
+    role: req.body.role || 'user', // Default role if not provided
   });
   const url = `${req.protocol}://${req.get("host")}/me`;
   req.login(newUser, (err) => {
@@ -277,5 +278,27 @@ exports.dynamicProtect = (req, res, next) => {
     if (!user) return res.status(401).json({ status: "fail", message: "Not authenticated" });
     req.user = user;
     next();
+  })(req, res, next);
+};
+
+exports.verifyToken = (req, res, next) => {
+  // --- Part 1: Check for an active session (e.g., from Google/Steam) ---
+  if (req.isAuthenticated && req.isAuthenticated()) {
+    // User is valid via session. Send 200 OK and the user ID header.
+    res.setHeader('X-User-Id', req.user.id);
+    return res.status(200).send('OK');
+  }
+
+  // --- Part 2: If no session, check for a JWT ---
+  passport.authenticate('jwt', { session: false }, (err, user, info) => {
+    if (err || !user) {
+      // Token is invalid or missing.
+      return res.status(401).send('Unauthorized');
+    }
+    
+    // User is valid via JWT. Send 200 OK and the user ID header.
+    res.setHeader('X-User-Id', user.id);
+    return res.status(200).send('OK');
+
   })(req, res, next);
 };

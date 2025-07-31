@@ -5,17 +5,11 @@ const helmet = require("helmet");
 const cookieParser = require("cookie-parser");
 const compression = require("compression");
 const cors = require("cors");
-const session = require("express-session");
-const MongoStore = require("connect-mongo");
-require("./config/passport");
-const passport = require("passport");
 const querystring = require('querystring');
 
 const gvRoutes = require("./routes/gvRoutes");
 const valorantRoutes = require("./routes/valorent");
-const userRouter = require("./routes/userRoutes");
 const eventRouter = require("./routes/eventRoutes");
-const chatRouter = require("./routes/chatRoutes");
 const teamRouter = require("./routes/teamRoutes");
 const inviteRouter = require("./routes/inviteRoutes");
 const matchRouter = require("./routes/matchRoutes");
@@ -61,43 +55,9 @@ app.use(cookieParser());
 
 app.use(compression());
 
-const mongoUrl = process.env.DATABASE.replace(
-  "<PASSWORD>",
-  process.env.DATABASE_PASSWORD
-);
-
-const sessionStore = MongoStore.create({
-  mongoUrl: mongoUrl,
-  collectionName: "sessions", // It's good practice to name the collection
-  touchAfter: 24 * 3600, // 24 hours
-});
-
-app.use((req, res, next) => {
-  // if (req.originalUrl.startsWith('/api/v1/users/auth/steam') || req.originalUrl.startsWith('/api/v1/users/auth/google')) {
-  //   console.log('Bypassing session for Steam/Google routes');
-  //   return next();
-  // }
-  session({
-    secret: process.env.SESSION_SECRET || "your-session-secret",
-    resave: false,
-    saveUninitialized: false,
-    store: sessionStore,
-    cookie: {
-      secure: false,
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000,
-    },
-  })(req, res, next);
-});
-
-app.use(passport.initialize());
-app.use(passport.session());
-
 require("./swagger")(app);
 
-app.use("/api/v1/users", userRouter);
 app.use("/api/v1/events", eventRouter);
-app.use("/api/v1/chats", chatRouter);
 app.use("/api/v1/teams", teamRouter);
 app.use("/api/v1/invites", inviteRouter);
 app.use("/api/v1/matches", valorantRoutes);

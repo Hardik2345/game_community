@@ -48,7 +48,7 @@ passport.use(
         ExtractJwt.fromAuthHeaderAsBearerToken(),
         cookieExtractor,
       ]),
-      secretOrKey: process.env.JWT_SECRET,
+      secretOrKey: process.env.JWT_SECRET || "your_jwt_secret",
     },
     async (jwt_payload, done) => {
       try {

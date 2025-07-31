@@ -2,6 +2,8 @@ const mongoose = require("mongoose");
 const slugify = require("slugify");
 const User = require("./userModel");
 
+const { publishEvent } = require('../eventPublisher');
+
 const eventSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -66,6 +68,18 @@ eventSchema.virtual("durationDays").get(function () {
 eventSchema.pre("save", function (next) {
   this.slug = slugify(this.name, { lower: true });
   next();
+});
+
+eventSchema.pre('save', async function () {
+    if (this.isNew || this.isModified('name')) {
+        try {
+            const eventData = { eventId: this._id, name: this.name };
+            await publishEvent('EventUpdated', eventData);
+            console.log(`--- EventUpdated event published for: ${this.name} ---`);
+        } catch (err) {
+            console.error("❌ Failed to publish EventUpdated event:", err.message);
+        }
+    }
 });
 
 eventSchema.pre(/^find/, function (next) {
