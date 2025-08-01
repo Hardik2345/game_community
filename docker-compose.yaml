@@ -37,6 +37,17 @@ services:
       redis:
         condition: service_healthy
 
+  # Team Service
+  team_service:
+    build: ./team-service
+    ports:
+      - "3003:3003"
+    env_file:
+      - ./team-service/.env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
   api_gateway:
     image: nginx:latest
     ports:
@@ -47,6 +58,7 @@ services:
       - monolith
       - auth_service
       - chat_service
+      - team_service
 
   
   # RabbitMQ Event Bus Service

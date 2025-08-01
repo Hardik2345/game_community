@@ -10,7 +10,6 @@ const querystring = require('querystring');
 const gvRoutes = require("./routes/gvRoutes");
 const valorantRoutes = require("./routes/valorent");
 const eventRouter = require("./routes/eventRoutes");
-const teamRouter = require("./routes/teamRoutes");
 const inviteRouter = require("./routes/inviteRoutes");
 const matchRouter = require("./routes/matchRoutes");
 const walletRouter = require("./routes/walletRoutes");
@@ -58,7 +57,6 @@ app.use(compression());
 require("./swagger")(app);
 
 app.use("/api/v1/events", eventRouter);
-app.use("/api/v1/teams", teamRouter);
 app.use("/api/v1/invites", inviteRouter);
 app.use("/api/v1/matches", valorantRoutes);
 app.use("/api/v1/gv", gvRoutes);
